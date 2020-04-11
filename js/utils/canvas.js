@@ -1,11 +1,8 @@
-class Canvas {
+class CanvasUtils {
     constructor(canvas) {
-        this.canvas = canvas;
-        this.ctx = canvas.getContext('2d');
     }
 
     renderLine(ctx, from, to, color, width) {
-        ctx = ctx || this.ctx;
         ctx.beginPath();
         ctx.moveTo(from[0], from[1]);
         ctx.lineTo(to[0], to[1]);
@@ -15,7 +12,6 @@ class Canvas {
     }
 
     renderCircle(ctx, position, radius, color) {
-        ctx = ctx || this.ctx;
         ctx.beginPath();
         ctx.arc(position[0], position[1], radius, 0, 2 * Math.PI);
         ctx.fillStyle = color;
@@ -23,7 +19,6 @@ class Canvas {
     }
 
     renderText(ctx, text, position, alignment = 'center', fontSize = 12) {
-        ctx = ctx || this.ctx;
         ctx.font = `${fontSize}px sans-serif`;
         ctx.textAlign = alignment;
         ctx.textBaseline = "middle";

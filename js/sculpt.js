@@ -1,5 +1,6 @@
 class SculptComponent {
-    constructor(canvas, radiusXY = 2, strength = 1) {
+    constructor(world, radiusXY = 2, strength = 1) {
+        this.worldRef = world;
         this.radiusXY = radiusXY;
         this.strength = strength;
         this.sleepDistance = 100;
@@ -7,7 +8,7 @@ class SculptComponent {
     }
 
     sculpt = (evt) => {
-        let offset = world.canvas.getBoundingClientRect(); // offset of canvas to topleft
+        let offset = this.worldRef.canvas.getBoundingClientRect(); // offset of canvas to topleft
         let x = evt.clientX - offset.x;
         let y = evt.clientY - offset.y;
 
@@ -19,16 +20,16 @@ class SculptComponent {
         this._lastSculptPosition = [x, y];
 
 
-        x = Math.round(x / world.tileSize);
-        y = Math.round(y / world.tileSize);
+        x = Math.round(x / this.worldRef.tileSize);
+        y = Math.round(y / this.worldRef.tileSize);
 
-        world.hasCached = false;
+        this.worldRef.hasCached = false;
         for (let offsetY = -this.radiusXY; offsetY <= this.radiusXY; offsetY++) {
             for (let offsetX = -this.radiusXY; offsetX <= this.radiusXY; offsetX++) {
                 const currentX = x + offsetX;
                 const currentY = y + offsetY;
 
-                if (currentX < 0 || currentY < 0 || currentX > world.numTilesX || currentY > world.numTilesY) { continue }
+                if (currentX < 0 || currentY < 0 || currentX > this.worldRef.numTilesX || currentY > this.worldRef.numTilesY) { continue }
 
 
                 const dist = this._distance([x, y], [currentX, currentY]);
@@ -38,8 +39,8 @@ class SculptComponent {
                 const direction = evt.shiftKey ? -1 : 1;
                 const densityChange = this.strength * falloff * direction;
 
-                const currentDensity = world.vertices[currentY][currentX];
-                world.vertices[currentY][currentX] = Math.min(Math.max(0, currentDensity + densityChange), 32);
+                const currentDensity = this.worldRef.vertices[currentY][currentX];
+                this.worldRef.vertices[currentY][currentX] = Math.min(Math.max(0, currentDensity + densityChange), 32);
             }
         }
     };
