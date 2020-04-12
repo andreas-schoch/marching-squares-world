@@ -116,7 +116,7 @@ world._generateVertices((x, y) => y > world.numTilesY / 2 ? world.tileDensityMax
 window.requestAnimationFrame(world._renderWorld);
 
 
-const sculptComponent = new SculptComponent(world, 3, 2);
+const sculptComponent = new SculptComponent(world, 3, world.tileDensityThreshold * 0.75);
 world.canvas.addEventListener('mousedown', function(evt) {
     sculptComponent.sculpt(evt);
     world.canvas.addEventListener('mousemove', sculptComponent.sculpt);

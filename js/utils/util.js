@@ -19,5 +19,6 @@ const util = {
             && a.y-a.h/2 < b.y+b.h/2;
     },
     canvas: new CanvasUtils(),
-    debug: new DebugUtils()
+    debug: new DebugUtils(),
+    vector: new VectorUtils()
 };

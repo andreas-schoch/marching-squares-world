@@ -36,24 +36,17 @@ class SculptComponent {
                 if (currentX < 0 || currentY < 0 || currentX > this.worldRef.numTilesX || currentY > this.worldRef.numTilesY) { continue }
 
 
-                const dist = this._distance([x, y], [currentX, currentY]);
-                if (dist > this.radiusXY ) { continue }
+                const dist = util.vector.distance([x, y], [currentX, currentY]);
+                if (dist > this.radiusXY) { continue }
 
-                const falloff = Math.max(Math.min((dist / -this.radiusXY) + 1, 1), 0);
+                const falloff = Math.max(Math.min((dist / -(this.radiusXY)) + 1, 1), 0);
                 const direction = evt.shiftKey ? -1 : 1;
                 const densityChange = this.strength * falloff * direction;
 
                 const currentDensity = this.worldRef.vertices[currentY][currentX];
                 const newDensityRaw = Math.min(Math.max(0, currentDensity + densityChange), this.worldRef.tileDensityMax);
                 this.worldRef.vertices[currentY][currentX] = Math.round(newDensityRaw);
-                // console.log(this.worldRef.vertices[currentY][currentX]);
             }
         }
     };
-
-    _distance = (vector1, vector2) => {
-        const relativeVector = [vector1[0] - vector2[0], vector1[1] - vector2[1]];
-        return Math.hypot(relativeVector[0], relativeVector[1])
-    }
-
 }
