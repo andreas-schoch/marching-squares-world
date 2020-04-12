@@ -12,10 +12,9 @@ class SculptComponent {
         let x = evt.clientX - offset.x;
         let y = evt.clientY - offset.y;
 
-        if (this._lastSculptPosition) {
-            const changeSinceLast = this._distance([x, y], this._lastSculptPosition);
-            console.log('change', changeSinceLast)
-        }
+        // if (this._lastSculptPosition) {
+        //     const changeSinceLast = this._distance([x, y], this._lastSculptPosition);
+        // }
         //
         this._lastSculptPosition = [x, y];
 
@@ -23,7 +22,12 @@ class SculptComponent {
         x = Math.round(x / this.worldRef.tileSize);
         y = Math.round(y / this.worldRef.tileSize);
 
-        this.worldRef.hasCached = false;
+        const boundsX = Math.min(Math.max(x - this.radiusXY, 0), this.worldRef.numTilesX);
+        const boundsY = Math.min(Math.max(y - this.radiusXY, 0), this.worldRef.numTilesY);
+        this.worldRef.vertsChangedBounds.push(
+            {x: boundsX, y: boundsY, numTilesX: this.radiusXY * 2, numTilesY: this.radiusXY * 2},
+        );
+
         for (let offsetY = -this.radiusXY; offsetY <= this.radiusXY; offsetY++) {
             for (let offsetX = -this.radiusXY; offsetX <= this.radiusXY; offsetX++) {
                 const currentX = x + offsetX;
@@ -40,7 +44,9 @@ class SculptComponent {
                 const densityChange = this.strength * falloff * direction;
 
                 const currentDensity = this.worldRef.vertices[currentY][currentX];
-                this.worldRef.vertices[currentY][currentX] = Math.min(Math.max(0, currentDensity + densityChange), 32);
+                const newDensityRaw = Math.min(Math.max(0, currentDensity + densityChange), this.worldRef.tileDensityMax);
+                this.worldRef.vertices[currentY][currentX] = Math.round(newDensityRaw);
+                // console.log(this.worldRef.vertices[currentY][currentX]);
             }
         }
     };

@@ -5,7 +5,7 @@ class DebugUtils {
         // this.tileSize = tileSize;
     }
 
-    _renderDebugGrid(world) {
+    renderDebugGrid(world) {
         // horizontal
         const terrainWidth = world.tileSize * world.numTilesX;
         for (let y = 0; y <= world.numTilesY; y++) {
@@ -21,17 +21,17 @@ class DebugUtils {
             const xCoord = x * world.tileSize;
             const from = [xCoord, 0];
             const to = [xCoord, terrainHeight];
-            util.canvas.renderLine(ctx, from, to);
+            util.canvas.renderLine(world.ctx, from, to);
         }
     }
 
-    _renderDebugEdgeDensity(ctx, vertices) {
+    renderDebugEdgeDensity(world) {
         for (let y = 0; y <= world.numTilesY; y++) {
             for (let x = 0; x <= world.numTilesX; x++) {
                 const offset = 0;
                 const position = [x * world.tileSize + offset, y * world.tileSize + offset];
-                const density = vertices[y][x];
-                util.canvas.renderText(ctx, density.toFixed(2), position);
+                const density = world.vertices[y][x];
+                util.canvas.renderText(world.ctx, density.toFixed(2), position);
             }
         }
     }
