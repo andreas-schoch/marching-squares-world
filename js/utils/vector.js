@@ -35,9 +35,28 @@ class VectorUtils {
         return [vector[0] / magnitude, vector[0] / magnitude];
     };
 
+    /**
+     * used to find the angle between two vectors in any dimensional space
+     * The dot product is a measure of how parallel two vectors are, scaled by their lengths
+     * https://betterexplained.com/articles/vector-calculus-understanding-the-dot-product/
+     */
     dot = (v1, v2) => v1[0] * v2[0] + v1[1] * v2[1];
 
     equals = (v1, v2) => v1[0] === v2[0] && v1[1] === v2[1];
+
+    length = (vector) => Math.sqrt(this.dot(vector, vector));
+
+    min = (v1, v2) => {
+        const x = Math.min(v1[0], v2[0]);
+        const y = Math.min(v1[1], v2[1]);
+        return [x, y];
+    };
+
+    max = (v1, v2) => {
+        const x = Math.max(v1[0], v1[0]);
+        const y = Math.max(v1[1], v2[1]);
+        return [x, y];
+    };
 
     lookAtDirection = (from, to) => this.normalize(this.relativeVector(from, to));
 }

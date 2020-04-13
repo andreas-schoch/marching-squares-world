@@ -3,29 +3,32 @@ class SculptComponent {
         this.worldRef = world;
         this.radiusXY = radiusXY;
         this.strength = strength;
-        this.sleepDistance = 100;
+        this.sleepDistance = 0;
         this._lastSculptPosition = null;
     }
 
     sculpt = (evt) => {
+        if (!evt) return;
         let offset = this.worldRef.canvas.getBoundingClientRect(); // offset of canvas to topleft
         let x = evt.clientX - offset.x;
         let y = evt.clientY - offset.y;
 
-        // if (this._lastSculptPosition) {
-        //     const changeSinceLast = this._distance([x, y], this._lastSculptPosition);
-        // }
-        //
-        this._lastSculptPosition = [x, y];
+        if (this._lastSculptPosition) {
+            const changeSinceLast = util.vector.distance([x, y], this._lastSculptPosition);
+            if (changeSinceLast < this.sleepDistance) return;
+        }
 
+        this._lastSculptPosition = [x, y];
 
         x = Math.round(x / this.worldRef.tileSize);
         y = Math.round(y / this.worldRef.tileSize);
 
-        const boundsX = Math.min(Math.max(x - this.radiusXY, 0), this.worldRef.numTilesX);
-        const boundsY = Math.min(Math.max(y - this.radiusXY, 0), this.worldRef.numTilesY);
-        this.worldRef.vertsChangedBounds.push(
-            {x: boundsX, y: boundsY, numTilesX: this.radiusXY * 2, numTilesY: this.radiusXY * 2},
+        const startX = Math.min(Math.max(x - this.radiusXY, 0), this.worldRef.numTilesX);
+        const startY = Math.min(Math.max(y - this.radiusXY, 0), this.worldRef.numTilesY);
+        const numTilesX = Math.min(this.radiusXY * 2, this.worldRef.numTilesX - 2);
+        const numTilesY = Math.min(this.radiusXY * 2, this.worldRef.numTilesY - 2);
+        this.worldRef.renderQueue.push(
+            {x: startX, y: startY, numTilesX: numTilesX, numTilesY: numTilesY},
         );
 
         for (let offsetY = -this.radiusXY; offsetY <= this.radiusXY; offsetY++) {

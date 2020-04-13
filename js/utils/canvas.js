@@ -24,4 +24,8 @@ class CanvasUtils {
         ctx.textBaseline = "middle";
         ctx.fillText(text, position[0], position[1]);
     }
+
+    renderFromPath2D(ctx, path2D, color) {
+
+    }
 }
