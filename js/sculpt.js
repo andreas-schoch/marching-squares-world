@@ -5,6 +5,7 @@ class SculptComponent {
         this.strength = strength;
         this.sleepDistance = 0;
         this._lastSculptPosition = null;
+        this.activeMaterialIndex = 0;
     }
 
     sculpt = (evt) => {
@@ -28,7 +29,7 @@ class SculptComponent {
         const numTilesX = Math.min(this.radiusXY * 2, this.worldRef.numTilesX - 2);
         const numTilesY = Math.min(this.radiusXY * 2, this.worldRef.numTilesY - 2);
         this.worldRef.renderQueue.push(
-            {x: startX, y: startY, numTilesX: numTilesX, numTilesY: numTilesY},
+            {x: startX, y: startY, numTilesX: numTilesX, numTilesY: numTilesY, materialIndex: null},
         );
 
         for (let offsetY = -this.radiusXY; offsetY <= this.radiusXY; offsetY++) {
@@ -36,20 +37,42 @@ class SculptComponent {
                 const currentX = x + offsetX;
                 const currentY = y + offsetY;
 
-                if (currentX < 0 || currentY < 0 || currentX > this.worldRef.numTilesX || currentY > this.worldRef.numTilesY) { continue }
-
-
                 const dist = util.vector.distance([x, y], [currentX, currentY]);
-                if (dist > this.radiusXY) { continue }
+                if (dist > this.radiusXY || currentX < 0 || currentY < 0 || currentX > this.worldRef.numTilesX || currentY > this.worldRef.numTilesY) { continue }
 
                 const falloff = Math.max(Math.min((dist / -(this.radiusXY)) + 1, 1), 0);
                 const direction = evt.shiftKey ? -1 : 1;
                 const densityChange = this.strength * falloff * direction;
 
-                const currentDensity = this.worldRef.vertices[currentY][currentX];
+                // const currentMaterialIndex = this.worldRef.verticesMaterial[currentY][currentX];
+                const currentDensity = this.worldRef.vertMap[this.activeMaterialIndex][currentY][currentX];
+                const currentDensityOther = this.worldRef.vertMap[this.activeMaterialIndex === 0 ? 1 : 0][currentY][currentX];
+
+                if (currentDensityOther + currentDensity >= this.worldRef.tileDensityMax + 5 && !evt.shiftKey) {
+                    const newDensityRaw = Math.min(Math.max(0, currentDensityOther - densityChange), this.worldRef.tileDensityMax);
+                    this.worldRef.vertMap[this.activeMaterialIndex === 0 ? 1 : 0][currentY][currentX] = newDensityRaw;
+                }
+
                 const newDensityRaw = Math.min(Math.max(0, currentDensity + densityChange), this.worldRef.tileDensityMax);
-                this.worldRef.vertices[currentY][currentX] = Math.round(newDensityRaw);
+                this.worldRef.vertMap[this.activeMaterialIndex][currentY][currentX] = newDensityRaw;
+
+
+
+                // if (currentMaterialIndex === this.activeMaterialIndex || currentDensity === 0) {
+                //     const newDensityRaw = Math.min(Math.max(0, currentDensity + densityChange), this.worldRef.tileDensityMax);
+                //     this.worldRef.vertices[currentY][currentX] = Math.round(newDensityRaw);
+                //     this.worldRef.verticesMaterial[currentY][currentX] = this.activeMaterialIndex;
+                // } else {
+                //     const newDensityRaw = Math.min(Math.max(0, currentDensity + (densityChange * -1)), this.worldRef.tileDensityMax);
+                //     this.worldRef.vertices[currentY][currentX] = Math.round(newDensityRaw);
+                // }
+
+                // if (newDensityRaw < this.worldRef.tileDensityThreshold) {
+                //     this.worldRef.verticesMaterial[currentY][currentX] = 1;
+                // }
             }
         }
     };
 }
+
+

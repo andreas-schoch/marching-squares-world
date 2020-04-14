@@ -12,6 +12,7 @@ class DebugUtils {
             const yCoord = y * world.tileSize;
             const from = [0, yCoord];
             const to = [terrainWidth, yCoord];
+            world.ctx.fillStyle = 'grey';
             util.canvas.renderLine(world.ctx, from, to);
         }
 
@@ -25,13 +26,15 @@ class DebugUtils {
         }
     }
 
-    renderDebugEdgeDensity(world) {
+    renderDebugEdgeDensity(world, materialIndex) {
+        world.ctx.fillStyle = 'salmon';
         for (let y = 0; y <= world.numTilesY; y++) {
             for (let x = 0; x <= world.numTilesX; x++) {
                 const offset = 0;
                 const position = [x * world.tileSize + offset, y * world.tileSize + offset];
-                const density = world.vertices[y][x];
-                util.canvas.renderText(world.ctx, density.toFixed(2), position);
+                const density = world.vertMap[materialIndex][y][x];
+                // const materialIndex = world.verticesMaterial[y][x];
+                util.canvas.renderText(world.ctx, density.toFixed(1), position);
             }
         }
     }
