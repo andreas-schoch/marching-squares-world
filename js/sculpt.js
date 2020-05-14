@@ -48,12 +48,13 @@ class SculptComponent {
                 const currentDensity = this.worldRef.vertMap[this.activeMaterialIndex][currentY][currentX];
                 const currentDensityOther = this.worldRef.vertMap[this.activeMaterialIndex === 0 ? 1 : 0][currentY][currentX];
 
-                if (currentDensityOther + currentDensity >= this.worldRef.tileDensityMax + 5 && !evt.shiftKey) {
+                if (currentDensityOther + currentDensity >= this.worldRef.tileDensityMax + 3 && !evt.shiftKey) {
                     const newDensityRaw = Math.min(Math.max(0, currentDensityOther - densityChange), this.worldRef.tileDensityMax);
                     this.worldRef.vertMap[this.activeMaterialIndex === 0 ? 1 : 0][currentY][currentX] = newDensityRaw;
                 }
 
                 const newDensityRaw = Math.min(Math.max(0, currentDensity + densityChange), this.worldRef.tileDensityMax);
+                // this.worldRef.vertMap[this.activeMaterialIndex][currentY][currentX] = Math.round(newDensityRaw);
                 this.worldRef.vertMap[this.activeMaterialIndex][currentY][currentX] = newDensityRaw;
 
 
@@ -74,5 +75,3 @@ class SculptComponent {
         }
     };
 }
-
-

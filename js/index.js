@@ -15,7 +15,7 @@ class World {
         this.numTilesY = numTilesY;
         this.disableWater = false;
 
-        this.tileDensityMax = 32;
+        this.tileDensityMax = 64;
         this.tileDensityThreshold = (this.tileDensityMax / 2);
 
         // this.verticesBuffer = new ArrayBuffer(numTilesX * numTilesY);
@@ -38,7 +38,7 @@ class World {
         this.TileManager = new TileLookupManager(tileSize, this.tileDensityThreshold);
         this.input = new InputComponent(); // TODO move this to a player class;
         this.input.initListeners(document);
-        this.sculpComponent = new SculptComponent(this, 3, 3);  // TODO move this to a player class;
+        this.sculpComponent = new SculptComponent(this, 4, 3);  // TODO move this to a player class;
     }
 
     _generateVertices(noiseFunction) {
@@ -116,19 +116,19 @@ class World {
                     for (let x = bounds.x; x < bounds.x + bounds.numTilesX; x++) {
                         if (x < 0 || y < 0 || x > this.numTilesX || y > this.numTilesY) { continue }
 
-                        if (bounds.materialIndex) {
-                            this.renderTileAt(x, y, null, bounds.materialIndex);
-                        } else {
-                            this.renderTileAt(x, y, null, 1);
-                            if ( this.disableWater === false) {
+                        // if (bounds.materialIndex) {
+                        //     this.renderTileAt(x, y, null, bounds.materialIndex);
+                        // } else {
+                        //     this.renderTileAt(x, y, null, 1);
+                        //     if ( this.disableWater === false) {
                                 this.renderTileAt(x, y, null, 0);
-                            }
-                        }
+                        //     }
+                        // }
                     }
                 }
-                if (bounds.materialIndex ==='water-update') {
-                    this.moveWaterTest();
-                }
+                // if (bounds.materialIndex ==='water-update') {
+                //     this.moveWaterTest();
+                // }
             });
 
             this.renderQueue.length = 0;
@@ -138,7 +138,7 @@ class World {
         }
 
         // util.debug.renderDebugGrid(this);
-        // util.debug.renderDebugEdgeDensity(this, 1);
+        // util.debug.renderDebugEdgeDensity(this, 0);
     };
 
     moveWaterTest() {
@@ -147,22 +147,48 @@ class World {
                 const currentValueLeft = this.verticesWater[y][left];
                 const currentValueRight = this.verticesWater[y][right];
 
-                if (this.vertices[y+1][left] === 0 && this.verticesWater[y+1][left] === 0)  {
-                    console.log('move down left');
+                // flow down
+                if (this.vertices[y+1][left] < this.tileDensityThreshold && this.verticesWater[y+1][left] === 0)  {
+                    // console.log('move down left');
                     this.verticesWater[y+1][left] = currentValueLeft;
                     this.verticesWater[y][left] = 0;
                 }
 
-                if (this.vertices[y+1][right] === 0 && this.verticesWater[y+1][right] === 0) {
-                    console.log('move down right');
+                // flow down
+                if (this.vertices[y+1][right] < this.tileDensityThreshold && this.verticesWater[y+1][right] === 0) {
+                    // console.log('move down right');
                     this.verticesWater[y+1][right] = currentValueRight;
                     this.verticesWater[y][right] = 0;
+                         this.renderQueue.push(
+            {x: 0, y: 0, numTilesX: this.numTilesX, numTilesY: this.numTilesY, materialIndex: null},
+        );
+                    return;
+                }
+
+                const leftGroundVal = left-1 >= 0 ? this.vertices[y][left-1] : this.tileDensityMax;
+                const rightGroundVal = right-1 >= 0 ? this.vertices[y][left+1] : this.tileDensityMax;
+
+                const leftWaterVal = left-1 >= 0 ? this.verticesWater[y][left-1] : this.tileDensityMax;
+                const rightWaterVal = right-1 >= 0 ? this.verticesWater[y][left+1] : this.tileDensityMax;
+
+                // flow both sides
+                if (leftGroundVal < this.tileDensityThreshold && rightGroundVal < this.tileDensityThreshold && leftWaterVal === 0 && rightWaterVal === 0)  {
+                    this.verticesWater[y][left+1] = currentValueLeft / 2;
+                    this.verticesWater[y][left-1] = currentValueLeft / 2;
+                    this.verticesWater[y][left] = 0;
+                // flow left
+                } else if (leftGroundVal < this.tileDensityThreshold && leftWaterVal < this.tileDensityMax) {
+                    this.verticesWater[y][left-1] = currentValueLeft + leftWaterVal;
+                    this.verticesWater[y][left] = 0;
+                // flow right
+                } else if (rightGroundVal < this.tileDensityThreshold && rightWaterVal < this.tileDensityMax) {
+                    this.verticesWater[y][left + 1] = currentValueLeft + leftWaterVal;
+                    this.verticesWater[y][left] = 0;
                 }
             }
         }
         this.renderQueue.push(
-            {x: 0, y: 0, numTilesX: this.numTilesX, numTilesY: this.numTilesY, materialIndex: 'water-update'},
-
+            {x: 0, y: 0, numTilesX: this.numTilesX, numTilesY: this.numTilesY, materialIndex: null},
         );
     }
 
@@ -173,7 +199,7 @@ class World {
     };
 }
 
-const world = new World(50, 30, 15);
+const world = new World(30, 60, 35);
 noise.seed(666);
 world._generateVertices((x, y) => y > world.numTilesY / 2 ? world.tileDensityMax : 0);
 window.requestAnimationFrame(world.main);
@@ -206,6 +232,16 @@ document.addEventListener('keydown', (evt) => {
            {x: 0, y: 0, numTilesX: world.numTilesX, numTilesY: world.numTilesY, materialIndex: null},
        )
    }
+
+   if( evt.key === '9') {
+       world.moveWaterTest();
+   }
+});
+
+document.addEventListener('wheel', (evt) => {
+    const change = evt.deltaY / 100;
+    world.sculpComponent.radiusXY = Math.min(Math.max(world.sculpComponent.radiusXY - change, 1), 20);
+    console.log(world.sculpComponent.radiusXY);
 });
 
 
@@ -214,6 +250,23 @@ document.addEventListener('keydown', (evt) => {
 //     const inverseCornerValue =
 //     return inverseCornerValue;
 // }
+
+
+
+
+const myWorker = new Worker("./js/worker.js");
+myWorker.postMessage('Hello there - Obi-Wan Kenobi');
+console.log('Message posted to worker');
+
+
+
+
+
+
+
+
+
+
 // TODO Think about how to handle collisions. Test fixed partitioning first then test with a quadtree
 // TODO Figure out how to bounce a ball relative to the terrain surface normal (compare edge1 with edge2 of surface and use dot product with direction vector of ball with some magic)
 
