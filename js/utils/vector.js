@@ -22,8 +22,7 @@ class VectorUtils {
   negate = (vector) => [-vector[0], -vector[1]];
 
   distance = (v1, v2) => {
-    // const rel = this.relativeVector(v1, v2);
-    const rel = [v1[0] - v2[0], v1[1] - v2[1]];
+    const rel = this.relativeVector(v1, v2);
 
     return Math.hypot(rel[0], rel[1]); // new ES6 way
     // return Math.sqrt(Math.pow(rel[0], 2) + Math.pow(rel[1], 2)); old ES5 way

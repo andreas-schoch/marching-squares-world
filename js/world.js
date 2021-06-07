@@ -1,6 +1,6 @@
 class World {
   constructor(tileSize = 24, numTilesX = 10, numTilesY = 20) {
-    this.canvas = document.getElementById('canvas');
+    this.canvas = document.getElementsByClassName('canvas')[0];
     this.ctx = this.canvas.getContext('2d',);
     this.canvas.width = tileSize * numTilesX;
     this.canvas.height = tileSize * numTilesY;
@@ -13,6 +13,9 @@ class World {
     this.tileSize = tileSize;
     this.numTilesX = numTilesX;
     this.numTilesY = numTilesY;
+
+    this.frames = 0;
+    this.lastFrame = null;
 
     this.tileDensityMax = 64;
     this.tileDensityThreshold = (this.tileDensityMax / 2);
@@ -29,7 +32,14 @@ class World {
     this.TileManager = new TileLookupManager(tileSize);
     this.input = new InputComponent(); // TODO move this to a player class;
     this.input.initListeners(document);
-    this.sculpComponent = new SculptComponent(this, 20, 25);  // TODO move this to a player class;
+    this.sculpComponent = new SculptComponent(this, 8, 10);  // TODO move this to a player class;
+
+    this.input.register('leftMouseButton',
+      () => this.sculpComponent.sculpting = true,
+      () => {
+        this.sculpComponent.sculpting = false;
+        this.sculpComponent._lastSculpt = null;
+      })
   }
 
   _generateVertices(noiseFunction) {
@@ -73,52 +83,11 @@ class World {
     }
   }
 
-  _updateWorld = () => {
-    // console.log('-------- update');
-    if (this.input._mappings.leftMouseButton.active) {
-      this.sculpComponent.sculpt(this.input.lastMouseMoveEvent)
-    }
+  update() {
+    this.sculpComponent.tick();
+  }
 
-    // this.renderQueue.push(
-    //   {x: 0, y: 0, numTilesX: this.numTilesX, numTilesY: this.numTilesY, materialIndex: null},
-    // );
-    //
-    // for (let y = 1; y < this.numTilesY - 1; y++) {
-    //   for (let x = 1; x < this.numTilesX; x++) {
-    //     try {
-    //       const cur = this.vertMap[0][y][x];
-    //
-    //       // if (cur >= this.tileDensityThreshold) {
-    //       if (cur > 0.5) {
-    //         const below = this.vertMap[0][y - 1][x];
-    //         const belowLeft = this.vertMap[0][y - 1][x-1];
-    //         const belowRight = this.vertMap[0][y - 1][x+1];
-    //
-    //         // if (below)
-    //
-    //         if (below <= this.tileDensityMax - 0.5) {
-    //           const flow = (this.tileDensityMax - below) / 60;
-    //           this.vertMap[0][y][x] -= flow;
-    //           this.vertMap[0][y + 1][x] += below;
-    //         } else if (belowLeft <= this.tileDensityMax - 0.5) {
-    //           const flow = (this.tileDensityMax - belowLeft) / 60;
-    //           this.vertMap[0][y][x] -= flow;
-    //           this.vertMap[0][y + 1][x-1] += flow;
-    //         } else if (belowLeft <= this.tileDensityMax - 0.5) {
-    //           const flow = (this.tileDensityMax - belowRight) / 60;
-    //           this.vertMap[0][y][x] -= flow;
-    //           this.vertMap[0][y + 1][x+1] += flow;
-    //         }
-    //
-    //       }
-    //     } catch (e) {
-    //       // console.log('out of range')
-    //     }
-    //   }
-    // }
-  };
-
-  _renderWorld = () => {
+  render() {
     this.ctx.fillStyle = 'grey';
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -128,9 +97,7 @@ class World {
         this.ctx.clearRect(bounds.x * this.tileSize, bounds.y * this.tileSize, bounds.numTilesX * this.tileSize, bounds.numTilesY * this.tileSize);
         for (let y = bounds.y; y < (bounds.y + bounds.numTilesY); y++) {
           for (let x = bounds.x; x < bounds.x + bounds.numTilesX; x++) {
-            if (x < 0 || y < 0 || x > this.numTilesX || y > this.numTilesY) {
-              continue
-            }
+            if (x < 0 || y < 0 || x > this.numTilesX || y > this.numTilesY) continue;
             this.renderTileAt(x, y, null, 0);
           }
         }
@@ -143,13 +110,18 @@ class World {
 
     // util.debug.renderDebugGrid(this);
     // util.debug.renderDebugEdgeDensity(this, 0);
-  };
+  }
 
-  main = () => {
-    // console.time('main');
-    this._updateWorld();
-    this._renderWorld();
+  main = (currentFrame) => {
+    this.frames++;
+    if (this.lastFrame) {
+      const delta = this.lastFrame - currentFrame;
+      // console.log('delta', delta, 'fps', 1000 / delta, 'avg fps:', 1000 / (currentFrame / this.frames));
+    }
+    this.lastFrame = currentFrame
+
+    this.update();
+    this.render();
     requestAnimationFrame(this.main);
-    // console.timeEnd('main');
   };
 }

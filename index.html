@@ -20,7 +20,7 @@
             height: 100vh;
         }
 
-        #canvas {
+        .canvas {
             box-shadow: 0 0 2px black;
             image-rendering: pixelated;
         }
@@ -30,8 +30,11 @@
 
 <body>
 <div class="wrap">
-    <canvas id="canvas" width="500" height="500"></canvas>
+    <canvas class="canvas" width="500" height="500"></canvas>
 </div>
+
+<button id="btn-save">save</button>
+<button id="btn-load">load</button>
 
 </body>
 <script src="./js/noise.js"></script>

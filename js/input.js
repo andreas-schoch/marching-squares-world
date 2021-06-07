@@ -26,18 +26,18 @@ class InputComponent {
     };
 
     this._inputHandlers = {
-      mouse: this._handleMouseInput,
-      direction: this._handleDirectionInput,
-      action: this._handleActionInput,
+      mouse: this._handleMouseInput.bind(this),
+      direction: this._handleDirectionInput.bind(this),
+      action: this._handleActionInput.bind(this),
     }
   }
 
-  register = function (action, fn, triggerOnRelease = false) {
+  register = function (action, onPress, onRelease) {
     if (this._mappings[action]) {
-      const trigger = triggerOnRelease ? 'onRelease' : 'onPress';
-      this._mappings[action].listeners[trigger].push(fn);
+      if (onPress) this._mappings[action].listeners.onPress.push(onPress);
+      if (onRelease) this._mappings[action].listeners.onRelease.push(onRelease);
     } else {
-      console.error(`The action: ${action} does not exist. Callback ${fn} could not be registered`);
+      console.error(`The action: ${action} does not exist. Callback could not be registered`);
     }
   };
 
@@ -50,7 +50,6 @@ class InputComponent {
 
   _getCurrentInput = (evt) => {
     const prefix = evt.button !== undefined ? 'button' : 'key';
-    // console.log('current input', evt[prefix]);
     const inputName = this._reverseMappings[`${prefix} ${evt[prefix]}`];
     return this._mappings[inputName];
   };
@@ -76,9 +75,9 @@ class InputComponent {
   }
 
   _handleMouseInput = (evt, currentInput) => {
-    if (!currentInput.active) {
+    if (!currentInput.active && evt.type === 'mousedown') {
       currentInput.listeners.onPress.forEach(fn => fn(evt));
-    } else if (currentInput.active && evt.type === 'keyup') {
+    } else if (currentInput.active && evt.type === 'mouseup') {
       currentInput.listeners.onRelease.forEach(fn => fn(evt));
     }
     currentInput.active = evt.type === 'mousedown';
