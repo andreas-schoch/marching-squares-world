@@ -1,15 +1,16 @@
 class InputComponent {
   constructor() {
     this.direction = [0, 0];
-    // this.mousePosition = null;
+    this.mousePos = null;
     this.lastMouseMoveEvent = null;
+    // TODO if feasible get rid of type property. It seems unnecessary here
     this._mappings = {
       leftMouseButton: {active: false, type: "mouse", listeners: {onPress: [], onRelease: []}},
       rightMouseButton: {active: false, type: "mouse", listeners: {onPress: [], onRelease: []}},
-      moveUp: {key: "w", active: false, type: "direction", listeners: {onPress: [], onRelease: []}, direction: [0, -1]},
-      moveLeft: {key: "a", active: false, type: "direction", listeners: {onPress: [], onRelease: []}, direction: [-1, 0]},
-      moveDown: {key: "s", active: false, type: "direction", listeners: {onPress: [], onRelease: []}, direction: [0, 1]},
-      moveRight: {key: "d", active: false, type: "direction", listeners: {onPress: [], onRelease: []}, direction: [1, 0]},
+      moveUp: {key: "w", active: false, type: "action", listeners: {onPress: [], onRelease: []}, direction: [0, -1]},
+      moveLeft: {key: "a", active: false, type: "action", listeners: {onPress: [], onRelease: []}, direction: [-1, 0]},
+      moveDown: {key: "s", active: false, type: "action", listeners: {onPress: [], onRelease: []}, direction: [0, 1]},
+      moveRight: {key: "d", active: false, type: "action", listeners: {onPress: [], onRelease: []}, direction: [1, 0]},
       jump: {key: " ", active: false, type: "action", listeners: {onPress: [], onRelease: []}},
       shift: {key: "Shift", active: false, type: "action", listeners: {onPress: [], onRelease: []}},
     };
@@ -27,7 +28,6 @@ class InputComponent {
 
     this._inputHandlers = {
       mouse: this._handleMouseInput.bind(this),
-      direction: this._handleDirectionInput.bind(this),
       action: this._handleActionInput.bind(this),
     }
   }
@@ -62,10 +62,13 @@ class InputComponent {
       this.direction[0] -= currentInput.direction[0];
       this.direction[1] -= currentInput.direction[1];
     }
-    currentInput.active = evt.type === 'keydown';
   }
 
   _handleActionInput(evt, currentInput) {
+    if (currentInput.direction) {
+      this._handleDirectionInput(evt, currentInput);
+    }
+
     if (!currentInput.active) {
       currentInput.listeners.onPress.forEach(fn => fn(evt));
     } else if (currentInput.active && evt.type === 'keyup') {
@@ -97,11 +100,3 @@ class InputComponent {
     element.addEventListener("mousemove", this._handleMouseMove);
   };
 }
-
-// TODO idea for input and world update handling. register fns/promises to the world._updateWorld() method together with a condition
-//      Only call the fn if the condition is true. Example: callback fn sculpt() executed with condition that LMB is pressed
-//      Think about different ways to abstract updating the world that will make it easy to expand functionality later on.
-//      Test this approach. If it's to complicated to work with, ditch it and keep it simple:
-//          _updateWorld() has a list of objects { callbackFn: () => somethingHappens(), active: <condition> }
-//          Since these objects are passed by reference the messenger system can still be used to set active based on events
-//          Either use callbacks or promises depending on ease of use and performance need. Experiment with rxjs observables

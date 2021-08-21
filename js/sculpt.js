@@ -43,7 +43,8 @@ class SculptComponent {
         const currentY = y + offsetY;
 
         const dist = util.vector.distance([x, y], [currentX, currentY]);
-        if (Math.round(dist) > this.radiusXY || currentX < 0 || currentY < 0 || currentX > this.worldRef.numTilesX || currentY > this.worldRef.numTilesY) {
+        // if (Math.round(dist) > this.radiusXY || currentX < 0 || currentY < 0 || currentX > this.worldRef.numTilesX || currentY > this.worldRef.numTilesY) {
+        if (currentX < 0 || currentY < 0 || currentX > this.worldRef.numTilesX || currentY > this.worldRef.numTilesY) {
           continue
         }
 
@@ -55,6 +56,9 @@ class SculptComponent {
       }
     }
 
-    this.worldRef.renderQueue.push({x: startX, y: startY, numTilesX: numTilesX, numTilesY: numTilesY, materialIndex: null});
+    // TODO there are visual issues with neighbouring tiles not being perfectly aligned. Not exactly sure why yet
+    this.worldRef.renderQueue.push({x: startX - 1, y: startY - 1, numTilesX: numTilesX + 2, numTilesY: numTilesY + 2, materialIndex: null});
+    // this.worldRef.renderQueue.push({x: startX, y: startY, numTilesX: numTilesX, numTilesY: numTilesY, materialIndex: null});
+    // this.worldRef.renderQueue.push({x: 0, y: 0, numTilesX: this.worldRef.numTilesX, numTilesY: this.worldRef.numTilesY, materialIndex: null});
   };
 }

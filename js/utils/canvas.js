@@ -16,6 +16,7 @@ class CanvasUtils {
     ctx.arc(position[0], position[1], radius, 0, 2 * Math.PI);
     ctx.fillStyle = color;
     ctx.fill();
+    ctx.stroke();
   }
 
   renderText(ctx, text, position, alignment = 'center', fontSize = 12) {

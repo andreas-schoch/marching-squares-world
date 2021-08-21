@@ -13,6 +13,7 @@ class DebugUtils {
       const from = [0, yCoord];
       const to = [terrainWidth, yCoord];
       world.ctx.fillStyle = 'grey';
+      world.ctx.lineWidth = 0.5;
       util.canvas.renderLine(world.ctx, from, to);
     }
 
@@ -34,7 +35,7 @@ class DebugUtils {
         const position = [x * world.tileSize + offset, y * world.tileSize + offset];
         const density = world.vertMap[materialIndex][y][x];
         // const materialIndex = world.verticesMaterial[y][x];
-        util.canvas.renderText(world.ctx, density.toFixed(1), position);
+        util.canvas.renderText(world.ctx, density.toFixed(0), position, 'right', 8);
       }
     }
   }

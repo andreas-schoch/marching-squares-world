@@ -21,7 +21,8 @@
         }
 
         .canvas {
-            box-shadow: 0 0 2px black;
+            box-shadow: 0 0 0 2px black;
+            border-radius: 5px;
             image-rendering: pixelated;
         }
     </style>
@@ -35,6 +36,8 @@
 
 <button id="btn-save">save</button>
 <button id="btn-load">load</button>
+<button id="btn-render">render</button>
+<button id="btn-debug">toggle-debug</button>
 
 </body>
 <script src="./js/noise.js"></script>
@@ -46,6 +49,7 @@
 <script src="./js/tile-lookup-manager.js"></script>
 <script src="./js/input.js"></script>
 <script src="./js/world.js"></script>
+<script src="./js/entity.js"></script>
 <script src="./js/index.js"></script>
 
 </html>

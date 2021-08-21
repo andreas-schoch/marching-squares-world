@@ -1,5 +1,6 @@
 class World {
   constructor(tileSize = 24, numTilesX = 10, numTilesY = 20) {
+    this.debug = false;
     this.canvas = document.getElementsByClassName('canvas')[0];
     this.ctx = this.canvas.getContext('2d',);
     this.canvas.width = tileSize * numTilesX;
@@ -20,7 +21,7 @@ class World {
     this.tileDensityMax = 64;
     this.tileDensityThreshold = (this.tileDensityMax / 2);
 
-    this.materialColor = ['black', 'blue', 'green', 'red'];
+    this.materialColor = ['wheat', 'blue', 'green', 'red'];
     this.vertices = [];
     this.verticesWater = [];
 
@@ -30,16 +31,17 @@ class World {
       {x: 0, y: 0, numTilesX: this.numTilesX, numTilesY: this.numTilesY, materialIndex: null},
     ];
     this.TileManager = new TileLookupManager(tileSize);
-    this.input = new InputComponent(); // TODO move this to a player class;
-    this.input.initListeners(document);
-    this.sculpComponent = new SculptComponent(this, 8, 10);  // TODO move this to a player class;
+    // this.input = new InputComponent(); // TODO move this to a player class;
+    // this.input.initListeners(document);
+    this.sculpComponent = new SculptComponent(this, 4, 2.5);  // TODO move this to a player class;
 
-    this.input.register('leftMouseButton',
-      () => this.sculpComponent.sculpting = true,
-      () => {
-        this.sculpComponent.sculpting = false;
-        this.sculpComponent._lastSculpt = null;
-      })
+    // TODO create a player class based on Entity which contains the inputComponent. There can only be one input component active at any time locally
+    // this.input.register('leftMouseButton',
+    //   () => this.sculpComponent.sculpting = true,
+    //   () => {
+    //     this.sculpComponent.sculpting = false;
+    //     this.sculpComponent._lastSculpt = null;
+    //   })
   }
 
   _generateVertices(noiseFunction) {
@@ -72,7 +74,7 @@ class World {
   renderTileAt(x, y, edgesOverwrite = null, materialIndex = 0) {
     const edges = edgesOverwrite || this._getTileEdges(x, y, materialIndex);
     if (edges) {
-      const path2D = this.TileManager.getTilePath2D(edges, this.tileDensityThreshold, this.tileSize);
+      const [path2D, path2DIso] = this.TileManager.getTilePath2D(edges, this.tileDensityThreshold, this.tileSize);
       if (path2D) {
         const position = util.vector.multiplyBy([x, y], this.tileSize);
         this.ctx.translate(position[0], position[1]);
@@ -80,6 +82,19 @@ class World {
         this.ctx.fill(path2D);
         this.ctx.setTransform(1, 0, 0, 1, 0, 0);
       }
+
+      if (path2DIso) {
+        const position = util.vector.multiplyBy([x, y], this.tileSize);
+        this.ctx.translate(position[0], position[1]);
+        this.ctx.strokeStyle = 'black';
+        // this.ctx.lineCap = "round";
+        this.ctx.lineCap = "butt";
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke(path2DIso);
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+      }
+
+
     }
   }
 
@@ -108,8 +123,10 @@ class World {
       this.ctxCache.drawImage(this.canvas, 0, 0);
     }
 
-    // util.debug.renderDebugGrid(this);
-    // util.debug.renderDebugEdgeDensity(this, 0);
+    if (this.debug) {
+      util.debug.renderDebugGrid(this);
+      util.debug.renderDebugEdgeDensity(this, 0);
+    }
   }
 
   main = (currentFrame) => {
@@ -122,6 +139,6 @@ class World {
 
     this.update();
     this.render();
-    requestAnimationFrame(this.main);
+    // requestAnimationFrame(this.main);
   };
 }
