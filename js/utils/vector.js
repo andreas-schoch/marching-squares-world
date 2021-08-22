@@ -87,11 +87,12 @@ class VectorUtils {
   lineCircle([fromX, fromY], [toX, toY], [cx, cy], r) {
 
     // is either end INSIDE the circle? if so, return true immediately
-    const inside1 = this.pointCircle([fromX, fromY], [cx, cy], r);
-    if (inside1) return [true, [cx, fromY]];
-
-    const inside2 = this.pointCircle([toX, toY], [cx, cy], r);
-    if (inside2) return [true, [cx, toY]];
+    // TODO this is problematic and needs fixing
+    // const inside1 = this.pointCircle([fromX, fromY], [cx, cy], r);
+    // if (inside1) return [true, [cx, fromY, [0, 1]]];
+    //
+    // const inside2 = this.pointCircle([toX, toY], [cx, cy], r);
+    // if (inside2) return [true, [cx, toY], [0,1]];
 
     // get length of the line
     const rel = this.relativeVector([fromX, fromY], [toX, toY]);
@@ -105,22 +106,21 @@ class VectorUtils {
     const closestX = fromX + (dot * (toX - fromX));
     const closestY = fromY + (dot * (toY - fromY));
 
-    // is this point actually on the line segment?
-    // if so keep going, but if not, return false
+    // is this point actually on the line segment? if so keep going, but if not, return false
     const onSegment = this.linePoint([fromX, fromY], [toX, toY], [closestX, closestY]);
     if (!onSegment) return [false];
 
+    const surfaceNormal = util.vector.normalize(util.vector.relativeVector([closestX, closestY], [cx, cy]));
+    const end = util.vector.subtract([closestX, closestY], util.vector.multiplyBy(surfaceNormal, 50))
+
     // // optionally, draw a circle at the closest
     util.canvas.renderCircle(world.ctx, [closestX, closestY], 5, 'red');
-    util.canvas.renderLine(world.ctx, [closestX, closestY], [cx, cy], 'red', 1);
-    // console.log('cross', this.cross([cx, cy], [closestX, closestY]));
-    // ellipse(closestX, closestY, 20, 20);
+    util.canvas.renderLine(world.ctx, [closestX, closestY], end, 'red', 1);
+    // util.canvas.renderLine(world.ctx, [closestX, closestY], [cx, cy], 'red', 1);
 
     // get distance to closest point
-    const [distX, distY] = this.relativeVector([closestX, closestY], [cx, cy]);
-    const distance = Math.sqrt((distX * distX) + (distY * distY));
-
-    return [distance <= r, [closestX, closestY]];
+    const distance = this.distance([closestX, closestY], [cx, cy]);
+    return [distance <= r, [closestX, closestY], surfaceNormal];
 
   }
 

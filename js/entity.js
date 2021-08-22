@@ -66,39 +66,50 @@ class Entity {
 
 
   collisionFloor() {
-    const line = [[500, 400], [750, 150]];
-    const line2 = [[250, 150], [500, 400]];
-    util.canvas.renderLine(world.ctx, line[0], line[1], 'green', 1);
+    const line1 = [[0, 400], [500, 400]];
+    const line2 = [[500, 400], [600, 300]];
+    const line3 = [[600, 300], [800, 300]];
+    util.canvas.renderLine(world.ctx, line1[0], line1[1], 'green', 1);
     util.canvas.renderLine(world.ctx, line2[0], line2[1], 'salmon', 1);
-    const [collides, point] = util.vector.lineCircle(line[0], line[1], this.pos, 20)
-    const [collides2, point2] = util.vector.lineCircle(line2[0], line2[1], this.pos, 20)
+    util.canvas.renderLine(world.ctx, line3[0], line3[1], 'yellow', 1);
+    const [collides, point, normal] = util.vector.lineCircle(line1[0], line1[1], this.pos, 20)
+    const [collides2, point2, normal2] = util.vector.lineCircle(line2[0], line2[1], this.pos, 20)
+    const [collides3, point3, normal3] = util.vector.lineCircle(line3[0], line3[1], this.pos, 20)
 
-    if (collides && point) {
-      this.pos[1] = point[1] - (Math.sqrt(2) * 10); // 45°
-      // this.pos[1] = point[1] - 18; // 22.5°
-      // this.pos[1] = point[1] - 20; // 0°
-
+    if (collides && point && normal) {
+      this.pos = util.vector.subtract(point, util.vector.multiplyBy(normal, 20));
       if (Math.abs(this.velocity[1] * this.elasticity) > 1.5) {
         console.log('bounce', this.velocity);
         this.velocity[1] = -(this.velocity[1] * this.elasticity);
       } else {
+        // this.velocity = [0, 0];
         this.velocity[1] = 0;
       }
     }
 
-    if (collides2 && point2) {
-      this.pos[1] = point2[1] - (Math.sqrt(2) * 10); // 45°
-      // this.pos[1] = point2[1] - 18; // 0°
-
+    if (collides2 && point2 && normal2) {
+      this.pos = util.vector.subtract(point2, util.vector.multiplyBy(normal2, 20));
       if (Math.abs(this.velocity[1] * this.elasticity) > 1.5) {
         console.log('bounce', this.velocity);
         this.velocity[1] = -(this.velocity[1] * this.elasticity);
       } else {
+        // this.velocity = [0, 0];
         this.velocity[1] = 0;
       }
     }
 
-    this.isFalling = !collides && !collides2;
+    if (collides3 && point3 && normal3) {
+      this.pos = util.vector.subtract(point3, util.vector.multiplyBy(normal3, 20));
+      if (Math.abs(this.velocity[1] * this.elasticity) > 1.5) {
+        console.log('bounce', this.velocity);
+        this.velocity[1] = -(this.velocity[1] * this.elasticity);
+      } else {
+        // this.velocity = [0, 0];
+        this.velocity[1] = 0;
+      }
+    }
+
+    this.isFalling = !collides && !collides2 && !collides3;
     if (!this.isFalling) {
       this.velocity[0] = this.velocity[0] * this.groundFriction;
     }
