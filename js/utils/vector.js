@@ -52,6 +52,18 @@ class VectorUtils {
    */
   dot = (v1, v2) => v1[0] * v2[0] + v1[1] * v2[1];
 
+  // Not meant for 2d vectors but maybe useful
+  // cross = (v1, v2) => {
+  //   v1[2] = 0;
+  //   v2[2] = 0;
+  //
+  //   return [
+  //     v1[1] * v2[2] - v1[2] * v2[1],
+  //     v1[2] * v2[0] - v1[0] * v2[2],
+  //     v1[0] * v2[1] - v1[1] * v2[0]
+  //   ];
+  // }
+
   equals = (v1, v2) => v1[0] === v2[0] && v1[1] === v2[1];
 
   length = (vector) => Math.sqrt(this.dot(vector, vector));
@@ -72,75 +84,69 @@ class VectorUtils {
 
   // Collision detection copied from here for now: https://www.jeffreythompson.org/collision-detection/line-circle.php
   // Will eventually switch to "Separating Axis Theorem" based approach if this naive approach does not work out
-  lineCircle(x1, y1, x2, y2, cx, cy, r) {
+  lineCircle([fromX, fromY], [toX, toY], [cx, cy], r) {
 
-    // is either end INSIDE the circle?
-    // if so, return true immediately
-    const inside1 = this.pointCircle(x1, y1, cx, cy, r);
-    const inside2 = this.pointCircle(x2, y2, cx, cy, r);
-    if (inside1 || inside2) return true;
+    // is either end INSIDE the circle? if so, return true immediately
+    const inside1 = this.pointCircle([fromX, fromY], [cx, cy], r);
+    if (inside1) return [true, [cx, fromY]];
+
+    const inside2 = this.pointCircle([toX, toY], [cx, cy], r);
+    if (inside2) return [true, [cx, toY]];
 
     // get length of the line
-    let distX = x1 - x2;
-    let distY = y1 - y2;
-    const len = Math.sqrt((distX * distX) + (distY * distY));
+    const rel = this.relativeVector([fromX, fromY], [toX, toY]);
+    const len = this.length(rel);
 
     // get dot product of the line and circle
-    const dot = (((cx - x1) * (x2 - x1)) + ((cy - y1) * (y2 - y1))) / Math.pow(len, 2);
+    const dot = (((cx - fromX) * (toX - fromX)) + ((cy - fromY) * (toY - fromY))) / Math.pow(len, 2);
+    // const dot2 = this.dot([cx - fromX, cy - fromY], [toX - fromX, toY - fromY]) / Math.pow(len, 2);
 
     // find the closest point on the line
-    const closestX = x1 + (dot * (x2 - x1));
-    const closestY = y1 + (dot * (y2 - y1));
+    const closestX = fromX + (dot * (toX - fromX));
+    const closestY = fromY + (dot * (toY - fromY));
 
     // is this point actually on the line segment?
     // if so keep going, but if not, return false
-    const onSegment = this.linePoint(x1, y1, x2, y2, closestX, closestY);
-    if (!onSegment) return false;
+    const onSegment = this.linePoint([fromX, fromY], [toX, toY], [closestX, closestY]);
+    if (!onSegment) return [false];
 
     // // optionally, draw a circle at the closest
-    // // point on the line
-    // fill(255, 0, 0);
-    // noStroke();
+    util.canvas.renderCircle(world.ctx, [closestX, closestY], 5, 'red');
+    util.canvas.renderLine(world.ctx, [closestX, closestY], [cx, cy], 'red', 1);
+    // console.log('cross', this.cross([cx, cy], [closestX, closestY]));
     // ellipse(closestX, closestY, 20, 20);
 
     // get distance to closest point
-    distX = closestX - cx;
-    distY = closestY - cy;
+    const [distX, distY] = this.relativeVector([closestX, closestY], [cx, cy]);
     const distance = Math.sqrt((distX * distX) + (distY * distY));
 
-    return distance <= r;
+    return [distance <= r, [closestX, closestY]];
 
   }
 
-  pointCircle = (px, py, cx, cy, r) => {
-    // get distance between the point and circle's center
-    // using the Pythagorean Theorem
+  pointCircle = ([px, py], [cx, cy], r) => {
+    // get distance between the point and circle's center using the Pythagorean Theorem
     const distX = px - cx;
     const distY = py - cy;
     const distance = Math.sqrt((distX * distX) + (distY * distY));
 
-    // if the distance is less than the circle's
-    // radius the point is inside!
+    // if the distance is less than the circle's radius, the point is inside!
     return distance <= r;
   }
 
-  linePoint(x1, y1, x2, y2, px, py) {
-
+  linePoint([fromX, fromY], [toX, toY], [px, py]) {
     // get distance from the point to the two ends of the line
-    const d1 = this.distance([px, py], [x1, y1]);
-    const d2 = this.distance([px, py], [x2, y2]);
+    const d1 = this.distance([px, py], [fromX, fromY]);
+    const d2 = this.distance([px, py], [toX, toY]);
 
     // get the length of the line
-    const lineLen = this.distance([x1, y1], [x2, y2]);
+    const lineLen = this.distance([fromX, fromY], [toX, toY]);
 
-    // since floats are so minutely accurate, add
-    // a little buffer zone that will give collision
+    // since floats are so minutely accurate, add a little buffer zone that will give collision
     const buffer = 0.1;    // higher # = less accurate
 
-    // if the two distances are equal to the line's
-    // length, the point is on the line!
-    // note we use the buffer here to give a range,
-    // rather than one #
+    // if the two distances are equal to the line's length, the point is on the line!
+    // note we use the buffer here to give a range, rather than one #
     return d1 + d2 >= lineLen - buffer && d1 + d2 <= lineLen + buffer;
   }
 

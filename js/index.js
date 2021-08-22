@@ -46,12 +46,12 @@ input.initListeners(document);
 
 window.requestAnimationFrame(function test() {
   world.ctx.clearRect(0, 0, world.canvas.width, world.canvas.height);
-  world.main();
+  // world.main();
 
   if (input._mappings['jump'].active) {
-    if (!entity.isFalling) {
-      entity.velocity = util.vector.add(entity.velocity, [0, -15])
-    }
+    // if (!entity.isFalling) {
+      entity.velocity = util.vector.add(entity.velocity, [0, -1.6])
+    // }
   }
 
   entity.update();
@@ -68,19 +68,3 @@ input.register('moveRight',
   () => entity.input = util.vector.add(entity.input, input._mappings['moveRight'].direction),
   () => entity.input = util.vector.subtract(entity.input, input._mappings['moveRight'].direction)
 )
-
-/////////////////////////////////////////////////////////////////////////////
-// world.vertices = [[5, 60], [60, 5]]; // 5 full
-// world.vertices = [[0, 60], [60, 0]]; // 5 hollow
-// world.vertices = [[60, 0], [0, 60]]; // 10 full
-// world.vertices = [[60, 5], [5, 60]]; // 10 hollow
-// world.vertMap = [world.vertices];
-
-// // Move towards mouse
-// if (input.mousePos) {
-//   const dir = util.vector.relativeVector(input.mousePos, entity.pos);
-//   if (util.vector.length(dir) >= 100) {
-//     const norm = util.vector.normalize(dir);
-//     entity.velocity = util.vector.add(entity.velocity, [norm[0], 0]);
-//   }
-// }

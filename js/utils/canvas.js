@@ -15,6 +15,7 @@ class CanvasUtils {
     ctx.beginPath();
     ctx.arc(position[0], position[1], radius, 0, 2 * Math.PI);
     ctx.fillStyle = color;
+    ctx.strokeStyle = 'black';
     ctx.fill();
     ctx.stroke();
   }
