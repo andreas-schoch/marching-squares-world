@@ -18,8 +18,8 @@ class Entity {
   }
 
   getCoordinates(world, pos) {
-    const x = Math.round((pos[0]) / world.tileSize);
-    const y = Math.round((pos[1]) / world.tileSize);
+    const x = Math.floor((pos[0]) / world.tileSize);
+    const y = Math.floor((pos[1]) / world.tileSize);
     return [x, y];
   }
 
@@ -30,10 +30,8 @@ class Entity {
       util.canvas.renderCircle(this.ctx, this.pos, 10, 'blue');
     }
 
-    // const [xLeft, yLeft] = this.getCoordinates(world, util.vector.add(this.pos, [-world.tileSize * 0.5, 0]));
-    // util.canvas.renderCircle(this.ctx, [xLeft * world.tileSize, yLeft * world.tileSize], 5, 'green');
-    // const [xRight, yRight] = this.getCoordinates(world, util.vector.add(this.pos, [world.tileSize * 0.5, 0]));
-    // util.canvas.renderCircle(this.ctx, [xRight * world.tileSize, yRight * world.tileSize], 5, 'green');
+    const [x, y] = this.getCoordinates(world, this.pos);
+    util.canvas.renderCircle(this.ctx, [x * world.tileSize + world.tileSize/2, y * world.tileSize + world.tileSize/2], 5, 'green');
   }
 
   update = () => {
@@ -51,7 +49,7 @@ class Entity {
       console.log('velocity length too large. Clamped to max value...', velocityLength);
       this.velocity = util.vector.divideBy(this.velocity, factor);
     } else if (prevVelocityLengthExcludeGravity > 1 && Math.abs(velocityLengthExcludeGravity) <= 0.05 && Math.abs(util.vector.distance(this.prevVelocity, this.velocity)) <= 0.001) {
-      // console.log('velocity too small, setting to zero...', velocityLengthExcludeGravity);
+      console.log('velocity too small, setting to zero...', velocityLengthExcludeGravity);
       this.velocity = [0, 0];
     }
 
@@ -60,59 +58,61 @@ class Entity {
 
     this.prevVelocity = this.velocity;
 
-    this.collisionFloor();
+    this.collision();
     this.addInput();
   }
 
 
-  collisionFloor() {
-    const line1 = [[0, 400], [500, 400]];
-    const line2 = [[500, 400], [600, 300]];
-    const line3 = [[600, 300], [800, 300]];
-    util.canvas.renderLine(world.ctx, line1[0], line1[1], 'green', 1);
-    util.canvas.renderLine(world.ctx, line2[0], line2[1], 'salmon', 1);
-    util.canvas.renderLine(world.ctx, line3[0], line3[1], 'yellow', 1);
-    const [collides, point, normal] = util.vector.lineCircle(line1[0], line1[1], this.pos, 20)
-    const [collides2, point2, normal2] = util.vector.lineCircle(line2[0], line2[1], this.pos, 20)
-    const [collides3, point3, normal3] = util.vector.lineCircle(line3[0], line3[1], this.pos, 20)
+  collision() {
+    const [x, y] = this.getCoordinates(world, this.pos);
+    const edges = world._getTileEdges(x, y, 0);
+    let tileIndex = -1;
+    let tileIsoLines = [];
 
-    if (collides && point && normal) {
-      this.pos = util.vector.subtract(point, util.vector.multiplyBy(normal, 20));
-      if (Math.abs(this.velocity[1] * this.elasticity) > 1.5) {
-        console.log('bounce', this.velocity);
-        this.velocity[1] = -(this.velocity[1] * this.elasticity);
-      } else {
-        // this.velocity = [0, 0];
-        this.velocity[1] = 0;
+    if (edges) {
+      tileIndex = world.TileManager._getTileLookupIndex(edges, world.tileDensityThreshold);
+
+      if (tileIndex !== 0) {
+        const pathData = world.TileManager._lookupTilePathData(edges, world.tileDensityThreshold);
+        let didCollide = false;
+        tileIsoLines = pathData.reduce((acc, cur, i, arr) => {
+          if (cur && cur[2] === 'iso-start') acc.push([cur, arr[i + 1]]);
+          return acc;
+        }, []);
+
+
+        tileIsoLines.forEach(line => {
+          const [from, to] = line;
+          const fromActual = util.vector.add(util.vector.multiplyBy([x, y], world.tileSize), util.vector.multiplyBy(from, world.tileSize));
+          const toActual = util.vector.add(util.vector.multiplyBy([x, y], world.tileSize), util.vector.multiplyBy(to, world.tileSize));
+
+          const [collides, point, normal] = util.vector.lineCircle(fromActual, toActual, this.pos, 20);
+            util.canvas.renderLine(world.ctx, fromActual, toActual, collides && point && normal ? 'red' : 'green', 5);
+          if (collides && point && normal) {
+            didCollide = true;
+
+            // util.canvas.renderLine(world.ctx, fromActual, toActual, 'red', 5);
+
+            this.pos = util.vector.subtract(point, util.vector.multiplyBy(normal, 20));
+
+            if (Math.abs(this.velocity[1] * this.elasticity) > 1.5) {
+              console.log('bounce', this.velocity);
+              this.velocity[1] = -(this.velocity[1] * this.elasticity);
+            } else {
+              this.velocity[1] = 0;
+            }
+
+            util.canvas.renderCircle(world.ctx, point, 6, 'green')
+          }
+        });
+
+        this.isFalling = !didCollide;
+        if (!this.isFalling) {
+          this.velocity[0] = this.velocity[0] * this.groundFriction;
+        }
       }
     }
 
-    if (collides2 && point2 && normal2) {
-      this.pos = util.vector.subtract(point2, util.vector.multiplyBy(normal2, 20));
-      if (Math.abs(this.velocity[1] * this.elasticity) > 1.5) {
-        console.log('bounce', this.velocity);
-        this.velocity[1] = -(this.velocity[1] * this.elasticity);
-      } else {
-        // this.velocity = [0, 0];
-        this.velocity[1] = 0;
-      }
-    }
-
-    if (collides3 && point3 && normal3) {
-      this.pos = util.vector.subtract(point3, util.vector.multiplyBy(normal3, 20));
-      if (Math.abs(this.velocity[1] * this.elasticity) > 1.5) {
-        console.log('bounce', this.velocity);
-        this.velocity[1] = -(this.velocity[1] * this.elasticity);
-      } else {
-        // this.velocity = [0, 0];
-        this.velocity[1] = 0;
-      }
-    }
-
-    this.isFalling = !collides && !collides2 && !collides3;
-    if (!this.isFalling) {
-      this.velocity[0] = this.velocity[0] * this.groundFriction;
-    }
   }
 
   addInput() {

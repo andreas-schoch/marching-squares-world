@@ -115,8 +115,8 @@ class VectorUtils {
 
     // // optionally, draw a circle at the closest
     util.canvas.renderCircle(world.ctx, [closestX, closestY], 5, 'red');
-    util.canvas.renderLine(world.ctx, [closestX, closestY], end, 'red', 1);
-    // util.canvas.renderLine(world.ctx, [closestX, closestY], [cx, cy], 'red', 1);
+    // util.canvas.renderLine(world.ctx, [closestX, closestY], end, 'red', 1); // surface normal
+    util.canvas.renderLine(world.ctx, [closestX, closestY], [cx, cy], 'red', 1);
 
     // get distance to closest point
     const distance = this.distance([closestX, closestY], [cx, cy]);

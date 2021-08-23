@@ -1,12 +1,12 @@
 // const world = new World(20, 70, 32); // no issue
-const world = new World(100, 10, 5);
+const world = new World(150, 10, 5);
 
-noise.seed(Math.random() * 100000);
+noise.seed(666);
 world._generateVertices((x, y) => {
-  const n1 = noise.simplex2(x / 15, y / 15) * world.tileDensityMax / 6;
-  const n2 = noise.simplex2(x / 30, y / 30) * world.tileDensityMax / 3;
-  const n3 = noise.simplex2(x / 60, y / 60) * world.tileDensityMax;
-  const n = n1 + n2 + n3 / 3;
+  const n1 = noise.simplex2(x / 3, y / 3) * world.tileDensityMax;
+  // const n2 = noise.simplex2(x / 30, y / 30) * world.tileDensityMax / 6;
+  // const n3 = noise.simplex2(x / 60, y / 60) * world.tileDensityMax;
+  const n = n1;
 
   const bias = ((y) / world.numTilesY);
   return Math.round(n + (65 * bias));
@@ -46,7 +46,7 @@ input.initListeners(document);
 
 window.requestAnimationFrame(function test() {
   world.ctx.clearRect(0, 0, world.canvas.width, world.canvas.height);
-  // world.main();
+  world.main();
 
   if (input._mappings['jump'].active) {
     // if (!entity.isFalling) {
