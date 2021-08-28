@@ -1,6 +1,6 @@
 class World {
   constructor(tileSize = 24, numTilesX = 10, numTilesY = 20) {
-    this.debug = false;
+    this.debug = true;
     this.canvas = document.getElementsByClassName('canvas')[0];
     this.ctx = this.canvas.getContext('2d',);
     this.canvas.width = tileSize * numTilesX;

@@ -6,6 +6,7 @@ class Entity {
     this.prevVelocity = [0, 0];
 
     this.pos = pos;
+    this.radius = 20;
     this.velocity = initialVelocity;
     this.maxVelocityLength = 35;
     this.size = [50, 50];
@@ -13,7 +14,7 @@ class Entity {
     this.airControl = 0.3;
     this.elasticity = 0.05;
     this.gravityVector = [0, 0.8];
-    this.airDrag = 0.97;
+    this.airDrag = 0.95;
     this.groundFriction = 0.92;
   }
 
@@ -24,14 +25,14 @@ class Entity {
   }
 
   render = () => {
-    util.canvas.renderCircle(this.ctx, this.pos, 20, util.vector.length(this.velocity) ? 'yellow' : 'red');
+    util.canvas.renderCircle(this.ctx, this.pos, this.radius, util.vector.length(this.velocity) ? 'yellow' : 'red');
 
     if (this.isFalling) {
-      util.canvas.renderCircle(this.ctx, this.pos, 10, 'blue');
+      util.canvas.renderCircle(this.ctx, this.pos, this.radius / 2, 'blue');
     }
 
     const [x, y] = this.getCoordinates(world, this.pos);
-    util.canvas.renderCircle(this.ctx, [x * world.tileSize + world.tileSize/2, y * world.tileSize + world.tileSize/2], 5, 'green');
+    util.canvas.renderCircle(this.ctx, [x * world.tileSize + world.tileSize/2, y * world.tileSize + world.tileSize/2], this.radius / 4, 'green');
   }
 
   update = () => {
@@ -86,14 +87,14 @@ class Entity {
           const fromActual = util.vector.add(util.vector.multiplyBy([x, y], world.tileSize), util.vector.multiplyBy(from, world.tileSize));
           const toActual = util.vector.add(util.vector.multiplyBy([x, y], world.tileSize), util.vector.multiplyBy(to, world.tileSize));
 
-          const [collides, point, normal] = util.vector.lineCircle(fromActual, toActual, this.pos, 20);
+          const [collides, point, normal] = util.vector.lineCircle(fromActual, toActual, this.pos, this.radius);
             util.canvas.renderLine(world.ctx, fromActual, toActual, collides && point && normal ? 'red' : 'green', 5);
           if (collides && point && normal) {
             didCollide = true;
 
             // util.canvas.renderLine(world.ctx, fromActual, toActual, 'red', 5);
 
-            this.pos = util.vector.subtract(point, util.vector.multiplyBy(normal, 20));
+            this.pos = util.vector.subtract(point, util.vector.multiplyBy(normal, this.radius));
 
             if (Math.abs(this.velocity[1] * this.elasticity) > 1.5) {
               console.log('bounce', this.velocity);
