@@ -12,6 +12,7 @@ class DebugUtils {
       const yCoord = y * world.tileSize;
       const from = [0, yCoord];
       const to = [terrainWidth, yCoord];
+      world.ctx.strokeStyle = 'grey';
       world.ctx.fillStyle = 'grey';
       world.ctx.lineWidth = 0.5;
       util.canvas.renderLine(world.ctx, from, to);

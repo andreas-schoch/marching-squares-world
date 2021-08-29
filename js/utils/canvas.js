@@ -7,6 +7,7 @@ class CanvasUtils {
     ctx.moveTo(from[0], from[1]);
     ctx.lineTo(to[0], to[1]);
     ctx.lineWidth = width;
+    ctx.fillStyle = color;
     ctx.strokeWidth = width;
     ctx.strokeStyle = color;
     ctx.stroke();
@@ -18,6 +19,7 @@ class CanvasUtils {
     ctx.fillStyle = color;
     ctx.strokeStyle = 'black';
     ctx.strokeWidth = strokeWidth;
+    ctx.lineWidth = strokeWidth;
     ctx.fill();
     ctx.stroke();
   }

@@ -11,17 +11,25 @@ class World {
     this.canvasCache.height = this.canvas.height;
     this.ctxCache = this.canvasCache.getContext('2d');
 
+    // Create sky gradient
+    this.gradientSky = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+    this.gradientSky.addColorStop(0, "lightblue");
+    this.gradientSky.addColorStop(1, "aliceblue");
+
+    // Create ground gradient
+    this.gradientground = this.ctx.createLinearGradient(0, 0, 0, tileSize);
+    this.gradientground.addColorStop(0, "sandybrown");
+    this.gradientground.addColorStop(0.5, "peru");
+    this.gradientground.addColorStop(1, "sandybrown");
+
     this.tileSize = tileSize;
     this.numTilesX = numTilesX;
     this.numTilesY = numTilesY;
 
-    this.frames = 0;
-    this.lastFrame = null;
-
     this.tileDensityMax = 64;
     this.tileDensityThreshold = (this.tileDensityMax / 2);
 
-    this.materialColor = ['wheat', 'blue', 'green', 'red'];
+    this.materialColor = [this.gradientground, 'blue', 'green', 'red'];
     this.vertices = [];
     this.verticesWater = [];
 
@@ -106,13 +114,14 @@ class World {
   }
 
   render() {
-    this.ctx.fillStyle = 'grey';
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.fillStyle = this.gradientSky;
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
     this.ctx.drawImage(this.canvasCache, 0, 0);
     if (this.renderQueue.length) {
       this.renderQueue.forEach((bounds) => {
-        this.ctx.clearRect(bounds.x * this.tileSize, bounds.y * this.tileSize, bounds.numTilesX * this.tileSize, bounds.numTilesY * this.tileSize);
+        this.ctx.fillStyle = this.gradientSky;
+        this.ctx.fillRect(bounds.x * this.tileSize, bounds.y * this.tileSize, bounds.numTilesX * this.tileSize, bounds.numTilesY * this.tileSize);
         for (let y = bounds.y; y < (bounds.y + bounds.numTilesY); y++) {
           for (let x = bounds.x; x < bounds.x + bounds.numTilesX; x++) {
             if (x < 0 || y < 0 || x > this.numTilesX || y > this.numTilesY) continue;

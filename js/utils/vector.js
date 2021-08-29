@@ -105,22 +105,21 @@ class VectorUtils {
 
     // is this point actually on the line segment? if so keep going, but if not, return false
     const onSegment = this.linePoint(lineFrom, lineTo, closestPoint);
-    if (!onSegment) return [false]
-    else {
+    if (onSegment) {
       util.canvas.renderCircle(world.ctx, closestPoint, 5, 'red');
       util.canvas.renderLine(world.ctx, closestPoint, circle, 'red', 1);
     }
 
-    const didCollide = this.distance(closestPoint, circle) <= r;
+    const didCollide = this.distance(closestPoint, circle) <= r && onSegment;
 
     if (!didCollide) {
       // TODO still problematic. Can keep entity from jumping up and normal doesn't seem right when averaging multiple
-      // if (this.pointCircle(lineFrom, circle, r + 1)) {
-      //   return [true, lineFrom, this.lookAtDirection(lineFrom, circle)];
-      // }
-      // if (this.pointCircle(lineTo, circle, r + 1)) {
-      //   return [true, lineTo, this.lookAtDirection(lineTo, circle)];
-      // }
+      if (this.pointCircle(lineFrom, circle, r)) {
+        return [true, lineFrom, this.lookAtDirection(lineFrom, circle)];
+      }
+      if (this.pointCircle(lineTo, circle, r)) {
+        return [true, lineTo, this.lookAtDirection(lineTo, circle)];
+      }
     }
     return [didCollide, closestPoint, this.lookAtDirection(closestPoint, circle)];
   }

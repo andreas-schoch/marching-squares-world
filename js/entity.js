@@ -9,14 +9,19 @@ class Entity {
     this.radius = 20;
     this.velocity = initialVelocity;
     this.maxVelocityLength = 35;
-    this.inputVelocityLength = 60;
+    this.inputVelocityLength = 45;
     this.isFalling = true;
     this.airControl = 0.3;
-    this.elasticity = 0.5;
-    this.gravityVector = [0, 48];
-    this.airDrag = 0.97;
+    this.elasticity = 0.3;
+    this.gravityVector = [0, 40];
+    this.airDrag = 0.98;
     this.groundFriction = 0.92;
     this.queue = []; // TODO temp
+
+    // body gradient
+    this.gradientBody = ctx.createRadialGradient(5, this.radius/ -3, 2, 0, 0, this.radius - 5);
+    this.gradientBody.addColorStop(0, "khaki");
+    this.gradientBody.addColorStop(1, "darkkhaki");
   }
 
   getCoordinates(world, pos) {
@@ -26,10 +31,12 @@ class Entity {
   }
 
   render = () => {
-    util.canvas.renderCircle(this.ctx, this.pos, this.radius, util.vector.length(this.velocity) ? 'yellow' : 'red');
+    world.ctx.translate(this.pos[0], this.pos[1]);
+    util.canvas.renderCircle(this.ctx, [0, 0], this.radius, this.gradientBody);
+    world.ctx.setTransform(1, 0, 0, 1, 0, 0);
 
     if (this.isFalling) {
-      util.canvas.renderCircle(this.ctx, this.pos, this.radius / 2, 'blue');
+      util.canvas.renderCircle(this.ctx, this.pos, this.radius / 4, 'khaki');
     }
 
     const [x, y] = this.getCoordinates(world, this.pos);
@@ -43,7 +50,7 @@ class Entity {
     if (world.input._mappings['jump'].active) {
       // if (!entity.isFalling) {
       // TODO make it possible to add impulses by passing the velocity scaled to a second
-      entity.velocity = util.vector.add(this.velocity, [0, -100 * delta])
+      entity.velocity = util.vector.add(this.velocity, [0, -85 * delta])
       // }
     }
 
@@ -71,8 +78,8 @@ class Entity {
 
     this.prevVelocity = this.velocity;
 
-    this.collision(delta);
     this.addInput(delta);
+    this.collision(delta);
   }
 
 
@@ -83,7 +90,7 @@ class Entity {
 
     // Get all near lines
     const centerCoords = this.getCoordinates(world, this.pos);
-    const offsetSize = 1;
+    const offsetSize = 2;
     for (let offsetX = -offsetSize; offsetX <= offsetSize; offsetX++) {
       for (let offsetY = -offsetSize; offsetY <= offsetSize; offsetY++) {
         const [x, y] = util.vector.add(centerCoords, [offsetX, offsetY]);
@@ -110,7 +117,7 @@ class Entity {
       try {
         const [collides, point, normal] = util.vector.lineCircle(from, to, this.pos, this.radius);
         if (collides) collideData.push([point, normal]);
-        this.queue.push(() => util.canvas.renderLine(world.ctx, from, to, collides ? 'red' : 'green', 4));
+        // this.queue.push(() => util.canvas.renderLine(world.ctx, from, to, collides ? 'red' : 'green', 4));
       } catch (e) {
         console.log('err', e)
       }
@@ -118,13 +125,16 @@ class Entity {
 
     // resolve collision with nearest collided point
     if (collideData.length) {
-      this.isFalling = false;
-
       const distances = collideData.map(c => util.vector.distance(this.pos, c[0]));
       const nearestIndex = distances.indexOf(Math.min(...distances));
       let [point, normal] = collideData[nearestIndex];
 
       if (collideData.length >= 2) {
+        // const pointAvg = util.vector.divideBy(util.vector.addAll(...collideData.map(c => c[0])), collideData.length);
+        // const normalAvg = util.vector.divideBy(util.vector.addAll(...collideData.map(c => c[1])), collideData.length);
+        // point = pointAvg;
+        // normal = normalAvg;
+
         distances.splice(nearestIndex, 1)
         collideData.splice(nearestIndex, 1)
         const secondNearestIndex = distances.indexOf(Math.min(...distances));
@@ -138,7 +148,7 @@ class Entity {
       this.pos[0] = correctedPos[0];
       this.pos[1] = correctedPos[1];
 
-      if (Math.abs(this.velocity[1] * this.elasticity) > 1.5) {
+      if (this.isFalling && Math.abs(util.vector.length(this.velocity) * this.elasticity) > 1.5) {
         // formula: Reflection = velocity − 2 * normal * (dot(velocity, normal))
         // Source: https://math.stackexchange.com/questions/36292/why-does-the-formula-for-calculating-a-reflection-vector-work
         const reflect = util.vector.subtract(this.velocity, util.vector.multiplyBy(normal, 2 * util.vector.dot(this.velocity, normal)));
@@ -146,8 +156,9 @@ class Entity {
         console.log('bounce', this.velocity);
       } else {
         // TODO maybe only reduce velocity based on collision direction
-        // E.g. if colliding straight down --> velocity[1] = 0 otherwise rotated accordingly
-        this.velocity = [0, 0];
+        //  E.g. if colliding straight down to a horizontal line --> velocity[1] = 0 otherwise rotated accordingly
+        this.velocity[1] = 0;
+        // this.velocity = [0, 0];
       }
     }
 
@@ -158,7 +169,7 @@ class Entity {
   }
 
   addInput(delta) {
-    const brake = this.isFalling ? this.airControl : 0.75;
+    const brake = this.isFalling ? this.airControl : 1;
 
     try {
       this.velocity[0] += this.input[0] * this.inputVelocityLength * brake * delta;
