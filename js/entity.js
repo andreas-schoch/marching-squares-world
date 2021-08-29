@@ -12,7 +12,7 @@ class Entity {
     this.inputVelocityLength = 60;
     this.isFalling = true;
     this.airControl = 0.3;
-    this.elasticity = 0.3;
+    this.elasticity = 0.5;
     this.gravityVector = [0, 48];
     this.airDrag = 0.97;
     this.groundFriction = 0.92;
@@ -139,10 +139,15 @@ class Entity {
       this.pos[1] = correctedPos[1];
 
       if (Math.abs(this.velocity[1] * this.elasticity) > 1.5) {
+        // formula: Reflection = velocity − 2 * normal * (dot(velocity, normal))
+        // Source: https://math.stackexchange.com/questions/36292/why-does-the-formula-for-calculating-a-reflection-vector-work
+        const reflect = util.vector.subtract(this.velocity, util.vector.multiplyBy(normal, 2 * util.vector.dot(this.velocity, normal)));
+        this.velocity = util.vector.multiplyBy(reflect, this.elasticity);
         console.log('bounce', this.velocity);
-        this.velocity[1] = -(this.velocity[1] * this.elasticity);
       } else {
-        this.velocity[1] = 0;
+        // TODO maybe only reduce velocity based on collision direction
+        // E.g. if colliding straight down --> velocity[1] = 0 otherwise rotated accordingly
+        this.velocity = [0, 0];
       }
     }
 
