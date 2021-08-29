@@ -9,11 +9,11 @@ class Entity {
     this.radius = 20;
     this.velocity = initialVelocity;
     this.maxVelocityLength = 35;
-    this.size = [50, 50];
+    this.inputVelocityLength = 60;
     this.isFalling = true;
     this.airControl = 0.3;
     this.elasticity = 0.05;
-    this.gravityVector = [0, 0.8];
+    this.gravityVector = [0, 48];
     this.airDrag = 0.95;
     this.groundFriction = 0.92;
   }
@@ -35,11 +35,11 @@ class Entity {
     util.canvas.renderCircle(this.ctx, [x * world.tileSize + world.tileSize/2, y * world.tileSize + world.tileSize/2], this.radius / 4, 'green');
   }
 
-  update = () => {
+  update = (delta) => {
     this.velocity[0] *= this.airDrag;
     this.velocity[1] *= this.airDrag;
-    this.velocity[0] += this.gravityVector[0];
-    this.velocity[1] += this.gravityVector[1];
+    this.velocity[0] += this.gravityVector[0] * delta;
+    this.velocity[1] += this.gravityVector[1] * delta;
 
     let velocityLength = util.vector.length(this.velocity);
     let velocityLengthExcludeGravity = util.vector.length(util.vector.subtract(this.velocity, this.gravityVector));
@@ -59,12 +59,16 @@ class Entity {
 
     this.prevVelocity = this.velocity;
 
-    this.collision();
-    this.addInput();
+    this.collision(delta);
+    this.addInput(delta);
   }
 
 
   collision() {
+    // TODO get neighbouring tiles,
+    //  check collision for all lines found on all tiles,
+    //  Either average out all collision points and normals for correction or ignore all but the nearest collision point
+    //  Fix the unwanted slide effect when entity is already touching floor (it continuously corrects towards the surface normal)
     const [x, y] = this.getCoordinates(world, this.pos);
     const edges = world._getTileEdges(x, y, 0);
     let tileIndex = -1;
@@ -94,7 +98,10 @@ class Entity {
 
             // util.canvas.renderLine(world.ctx, fromActual, toActual, 'red', 5);
 
-            this.pos = util.vector.subtract(point, util.vector.multiplyBy(normal, this.radius));
+            const correctedPos = util.vector.subtract(point, util.vector.multiplyBy(normal, this.radius));
+            // this.pos[0] = this.isFalling ? correctedPos[0] : this.pos[0]; // TODO prevents sliding but still not 100% correct
+            this.pos[0] = correctedPos[0];
+            this.pos[1] = correctedPos[1];
 
             if (Math.abs(this.velocity[1] * this.elasticity) > 1.5) {
               console.log('bounce', this.velocity);
@@ -116,17 +123,14 @@ class Entity {
 
   }
 
-  addInput() {
+  addInput(delta) {
     const brake = this.isFalling ? this.airControl : 0.75;
 
     try {
-      this.velocity[0] += this.input[0] * brake;
-      this.velocity[1] += this.input[1] * brake;
+      this.velocity[0] += this.input[0] * this.inputVelocityLength * brake * delta;
+      this.velocity[1] += this.input[1] * this.inputVelocityLength * brake * delta;
     } catch (e) {
       console.log('error', this.input);
     }
-    //this.velocity.y += this.input.y * brake;
-
-
   }
 }

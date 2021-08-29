@@ -3,10 +3,11 @@ const world = new World(150, 10, 5);
 
 noise.seed(666);
 world._generateVertices((x, y) => {
-  const n1 = noise.simplex2(x / 3, y / 3) * world.tileDensityMax;
+  // const n1 = noise.simplex2(x / 15, y / 15) * world.tileDensityMax / 6;
   // const n2 = noise.simplex2(x / 30, y / 30) * world.tileDensityMax / 6;
   // const n3 = noise.simplex2(x / 60, y / 60) * world.tileDensityMax;
-  const n = n1;
+  // const n = (n1 + n2 + n3) / 3;
+  const n = noise.simplex2(x / 3, y / 3) * world.tileDensityMax;
 
   const bias = ((y) / world.numTilesY);
   return Math.round(n + (65 * bias));
@@ -44,17 +45,22 @@ entity.render();
 const input = new InputComponent();
 input.initListeners(document);
 
-window.requestAnimationFrame(function test() {
+let last = null;
+window.requestAnimationFrame(function test(now) {
+  const delta = last ? (now - last) / 1000 : 0;
+  last = now;
   world.ctx.clearRect(0, 0, world.canvas.width, world.canvas.height);
-  world.main();
+  world.main(delta);
 
   if (input._mappings['jump'].active) {
     // if (!entity.isFalling) {
-      entity.velocity = util.vector.add(entity.velocity, [0, -1.6])
+    // TODO make it possible to add impulses by passing the velocity scaled to a second
+    // entity.velocity = util.vector.add(entity.velocity, [0, -15])
+    entity.velocity = util.vector.add(entity.velocity, [0, -100 * delta])
     // }
   }
 
-  entity.update();
+  entity.update(delta);
   entity.render();
   window.requestAnimationFrame(test);
 });
@@ -68,3 +74,6 @@ input.register('moveRight',
   () => entity.input = util.vector.add(entity.input, input._mappings['moveRight'].direction),
   () => entity.input = util.vector.subtract(entity.input, input._mappings['moveRight'].direction)
 )
+
+// TODO - Introduce world space and screen space coordinates to be able to pan around the world beyond what the canvas shows at any moment in time
+//        As well as zooming to increase or decrease the distance to the "z" axis. Helpful resource: https://www.youtube.com/watch?v=ZQ8qtAizis4

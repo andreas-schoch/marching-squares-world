@@ -129,16 +129,8 @@ class World {
     }
   }
 
-  main = (currentFrame) => {
-    this.frames++;
-    if (this.lastFrame) {
-      const delta = this.lastFrame - currentFrame;
-      // console.log('delta', delta, 'fps', 1000 / delta, 'avg fps:', 1000 / (currentFrame / this.frames));
-    }
-    this.lastFrame = currentFrame
-
-    this.update();
+  main = (delta) => {
+    this.update(delta);
     this.render();
-    // requestAnimationFrame(this.main);
   };
 }

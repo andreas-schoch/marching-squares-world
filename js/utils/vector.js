@@ -21,6 +21,9 @@ class VectorUtils {
 
   negate = (vector) => [-vector[0], -vector[1]];
 
+  floor = (v) => [Math.floor(v[0]), Math.floor(v[1])];
+  round = (v) => [Math.round(v[0]), Math.round(v[1])];
+
   distance = (v1, v2) => {
     const rel = this.relativeVector(v1, v2);
 
@@ -49,6 +52,7 @@ class VectorUtils {
    * used to find the angle between two vectors in any dimensional space
    * The dot product is a measure of how parallel two vectors are, scaled by their lengths
    * https://betterexplained.com/articles/vector-calculus-understanding-the-dot-product/
+   * https://www.youtube.com/watch?v=DPfxjQ6sqrc (around 24:00)
    */
   dot = (v1, v2) => v1[0] * v2[0] + v1[1] * v2[1];
 
@@ -82,71 +86,68 @@ class VectorUtils {
 
   lookAtDirection = (from, to) => this.normalize(this.relativeVector(from, to));
 
-  // Collision detection copied from here for now: https://www.jeffreythompson.org/collision-detection/line-circle.php
-  // Will eventually switch to "Separating Axis Theorem" based approach if this naive approach does not work out
-  lineCircle([fromX, fromY], [toX, toY], [cx, cy], r) {
+  lineCircle(lineFrom, lineTo, circle, r) {
+    // Collision detection mostly based on: https://www.jeffreythompson.org/collision-detection/line-circle.php
 
     // is either end INSIDE the circle? if so, return true immediately
-    // TODO this is problematic and needs fixing
-    // const inside1 = this.pointCircle([fromX, fromY], [cx, cy], r);
-    // if (inside1) return [true, [cx, fromY, [0, 1]]];
-    //
-    // const inside2 = this.pointCircle([toX, toY], [cx, cy], r);
-    // if (inside2) return [true, [cx, toY], [0,1]];
+    // TODO Maybe this should be checked after circleLine collision returned false.
+    //  CircleLine collision should take precedence over this to prevent position correction to the wrong side
+    if (this.pointCircle(lineFrom, circle, r)) {
+      return [true, lineFrom, this.lookAtDirection(lineFrom, circle)];
+    }
+    if (this.pointCircle(lineTo, circle, r)) {
+      return [true, lineTo, this.lookAtDirection(lineTo, circle)];
+    }
 
     // get length of the line
-    const rel = this.relativeVector([fromX, fromY], [toX, toY]);
+    const rel = this.relativeVector(lineFrom, lineTo);
     const len = this.length(rel);
 
-    // get dot product of the line and circle
-    const dot = (((cx - fromX) * (toX - fromX)) + ((cy - fromY) * (toY - fromY))) / Math.pow(len, 2);
-    // const dot2 = this.dot([cx - fromX, cy - fromY], [toX - fromX, toY - fromY]) / Math.pow(len, 2);
+    // get dot product of the line and circle // TODO refactor to use available dot helper method
+    const dot = (((circle[0] - lineFrom[0]) * (lineTo[0] - lineFrom[0])) + ((circle[1] - lineFrom[1]) * (lineTo[1] - lineFrom[1]))) / Math.pow(len, 2);
 
-    // find the closest point on the line
-    const closestX = fromX + (dot * (toX - fromX));
-    const closestY = fromY + (dot * (toY - fromY));
+    // find a point on the line which is closest to the circle
+    const closestPoint = [
+      lineFrom[0] + (dot * (lineTo[0] - lineFrom[0])),
+      lineFrom[1] + (dot * (lineTo[1] - lineFrom[1]))
+    ];
 
     // is this point actually on the line segment? if so keep going, but if not, return false
-    const onSegment = this.linePoint([fromX, fromY], [toX, toY], [closestX, closestY]);
-    if (!onSegment) return [false];
+    const onSegment = this.linePoint(lineFrom, lineTo, closestPoint);
+    if (!onSegment) return [false]
+    else {
+      util.canvas.renderCircle(world.ctx, closestPoint, 5, 'red');
+      util.canvas.renderLine(world.ctx, closestPoint, circle, 'red', 1);
+    }
 
-    const surfaceNormal = util.vector.normalize(util.vector.relativeVector([closestX, closestY], [cx, cy]));
-    const end = util.vector.subtract([closestX, closestY], util.vector.multiplyBy(surfaceNormal, 50))
-
-    // // optionally, draw a circle at the closest
-    util.canvas.renderCircle(world.ctx, [closestX, closestY], 5, 'red');
-    // util.canvas.renderLine(world.ctx, [closestX, closestY], end, 'red', 1); // surface normal
-    util.canvas.renderLine(world.ctx, [closestX, closestY], [cx, cy], 'red', 1);
-
-    // get distance to closest point
-    const distance = this.distance([closestX, closestY], [cx, cy]);
-    return [distance <= r, [closestX, closestY], surfaceNormal];
-
+    const didCollide = this.distance(closestPoint, circle) <= r;
+    return [didCollide, closestPoint, this.lookAtDirection(closestPoint, circle)];
   }
 
-  pointCircle = ([px, py], [cx, cy], r) => {
+  /**
+   * Check collision between a single point in space and the center of a circle
+   * @param p point position
+   * @param c circle position
+   * @param r circle radius
+   * @returns {boolean} true if a collision occurred
+   */
+  pointCircle = (p, c, r) => {
     // get distance between the point and circle's center using the Pythagorean Theorem
-    const distX = px - cx;
-    const distY = py - cy;
-    const distance = Math.sqrt((distX * distX) + (distY * distY));
-
     // if the distance is less than the circle's radius, the point is inside!
-    return distance <= r;
+    return util.vector.distance(p, c) <= r;
   }
 
-  linePoint([fromX, fromY], [toX, toY], [px, py]) {
+  linePoint(lineFrom, lineTo, point) {
     // get distance from the point to the two ends of the line
-    const d1 = this.distance([px, py], [fromX, fromY]);
-    const d2 = this.distance([px, py], [toX, toY]);
+    const d1 = this.distance(point, lineFrom);
+    const d2 = this.distance(point, lineTo);
 
     // get the length of the line
-    const lineLen = this.distance([fromX, fromY], [toX, toY]);
-
-    // since floats are so minutely accurate, add a little buffer zone that will give collision
-    const buffer = 0.1;    // higher # = less accurate
+    const lineLen = this.distance(lineFrom, lineTo);
 
     // if the two distances are equal to the line's length, the point is on the line!
-    // note we use the buffer here to give a range, rather than one #
+    // note we use the buffer here to give a range, rather than one value.
+    const buffer = 0.05;    // higher value === less accurate
     return d1 + d2 >= lineLen - buffer && d1 + d2 <= lineLen + buffer;
   }
 
