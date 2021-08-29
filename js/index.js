@@ -1,13 +1,12 @@
-// const world = new World(20, 70, 32); // no issue
-const world = new World(150, 10, 5);
+const world = new World(50, 20, 11);
 
-noise.seed(666);
+noise.seed(Math.random());
 world._generateVertices((x, y) => {
-  // const n1 = noise.simplex2(x / 15, y / 15) * world.tileDensityMax / 6;
-  // const n2 = noise.simplex2(x / 30, y / 30) * world.tileDensityMax / 6;
-  // const n3 = noise.simplex2(x / 60, y / 60) * world.tileDensityMax;
-  // const n = (n1 + n2 + n3) / 3;
-  const n = noise.simplex2(x / 3, y / 3) * world.tileDensityMax;
+  const n1 = noise.simplex2(x / 8, y / 8) * world.tileDensityMax / 1.5;
+  const n2 = noise.simplex2(x / 16, y / 16) * world.tileDensityMax / 2;
+  const n3 = noise.simplex2(x / 36, y / 36) * world.tileDensityMax;
+  const n = (n1 + n2 + n3) / 3;
+  // const n = noise.simplex2(x / 5, y / 5) * world.tileDensityMax;
 
   const bias = ((y) / world.numTilesY);
   return Math.round(n + (65 * bias));
@@ -39,41 +38,34 @@ btnDebug.onclick = evt => {
   world.renderQueue.push({x: 0, y: 0, numTilesX: world.numTilesX, numTilesY: world.numTilesY, materialIndex: null});
 }
 
-const entity = new Entity(world.ctx, [0, 0], [0, 80], [25, -5]);
-entity.render();
+const entity = new Entity(world.ctx, [0, 1], [80, 150], [12, -7]);
+world.entities.push(entity);
 
-const input = new InputComponent();
-input.initListeners(document);
+// TODO figure out why adding a second entity influences air control of first one
+// const entity2 = new Entity(world.ctx, [0, 0], [1000, 150], [-12, -7]);
+// world.entities.push(entity2);
 
-let last = null;
-window.requestAnimationFrame(function test(now) {
-  const delta = last ? (now - last) / 1000 : 0;
-  last = now;
-  world.ctx.clearRect(0, 0, world.canvas.width, world.canvas.height);
-  world.main(delta);
-
-  if (input._mappings['jump'].active) {
-    // if (!entity.isFalling) {
-    // TODO make it possible to add impulses by passing the velocity scaled to a second
-    // entity.velocity = util.vector.add(entity.velocity, [0, -15])
-    entity.velocity = util.vector.add(entity.velocity, [0, -100 * delta])
-    // }
-  }
-
-  entity.update(delta);
-  entity.render();
-  window.requestAnimationFrame(test);
-});
-
-input.register('moveLeft',
-  () => entity.input = util.vector.add(entity.input, input._mappings['moveLeft'].direction),
-  () => entity.input = util.vector.subtract(entity.input, input._mappings['moveLeft'].direction)
+world.input.register('moveLeft',
+  () => entity.input = util.vector.add(entity.input, world.input._mappings['moveLeft'].direction),
+  () => entity.input = util.vector.subtract(entity.input, world.input._mappings['moveLeft'].direction)
 )
 
-input.register('moveRight',
-  () => entity.input = util.vector.add(entity.input, input._mappings['moveRight'].direction),
-  () => entity.input = util.vector.subtract(entity.input, input._mappings['moveRight'].direction)
+world.input.register('moveRight',
+  () => entity.input = util.vector.add(entity.input, world.input._mappings['moveRight'].direction),
+  () => entity.input = util.vector.subtract(entity.input, world.input._mappings['moveRight'].direction)
 )
+
+world.input.register('moveUp',
+  () => entity.input = util.vector.add(entity.input, world.input._mappings['moveUp'].direction),
+  () => entity.input = util.vector.subtract(entity.input, world.input._mappings['moveUp'].direction)
+)
+
+world.input.register('moveDown',
+  () => entity.input = util.vector.add(entity.input, world.input._mappings['moveDown'].direction),
+  () => entity.input = util.vector.subtract(entity.input, world.input._mappings['moveDown'].direction)
+)
+
+requestAnimationFrame(world.main);
 
 // TODO - Introduce world space and screen space coordinates to be able to pan around the world beyond what the canvas shows at any moment in time
 //        As well as zooming to increase or decrease the distance to the "z" axis. Helpful resource: https://www.youtube.com/watch?v=ZQ8qtAizis4

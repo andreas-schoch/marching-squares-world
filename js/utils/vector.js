@@ -88,16 +88,7 @@ class VectorUtils {
 
   lineCircle(lineFrom, lineTo, circle, r) {
     // Collision detection mostly based on: https://www.jeffreythompson.org/collision-detection/line-circle.php
-
-    // is either end INSIDE the circle? if so, return true immediately
-    // TODO Maybe this should be checked after circleLine collision returned false.
-    //  CircleLine collision should take precedence over this to prevent position correction to the wrong side
-    if (this.pointCircle(lineFrom, circle, r)) {
-      return [true, lineFrom, this.lookAtDirection(lineFrom, circle)];
-    }
-    if (this.pointCircle(lineTo, circle, r)) {
-      return [true, lineTo, this.lookAtDirection(lineTo, circle)];
-    }
+    // TODO move collision helpers to standalone util class
 
     // get length of the line
     const rel = this.relativeVector(lineFrom, lineTo);
@@ -121,6 +112,16 @@ class VectorUtils {
     }
 
     const didCollide = this.distance(closestPoint, circle) <= r;
+
+    if (!didCollide) {
+      // TODO still problematic. Can keep entity from jumping up and normal doesn't seem right when averaging multiple
+      // if (this.pointCircle(lineFrom, circle, r + 1)) {
+      //   return [true, lineFrom, this.lookAtDirection(lineFrom, circle)];
+      // }
+      // if (this.pointCircle(lineTo, circle, r + 1)) {
+      //   return [true, lineTo, this.lookAtDirection(lineTo, circle)];
+      // }
+    }
     return [didCollide, closestPoint, this.lookAtDirection(closestPoint, circle)];
   }
 
@@ -147,7 +148,7 @@ class VectorUtils {
 
     // if the two distances are equal to the line's length, the point is on the line!
     // note we use the buffer here to give a range, rather than one value.
-    const buffer = 0.05;    // higher value === less accurate
+    const buffer = 5;    // higher value === less accurate but more forgiving
     return d1 + d2 >= lineLen - buffer && d1 + d2 <= lineLen + buffer;
   }
 

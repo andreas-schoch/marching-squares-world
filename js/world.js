@@ -1,6 +1,6 @@
 class World {
   constructor(tileSize = 24, numTilesX = 10, numTilesY = 20) {
-    this.debug = true;
+    this.debug = false;
     this.canvas = document.getElementsByClassName('canvas')[0];
     this.ctx = this.canvas.getContext('2d',);
     this.canvas.width = tileSize * numTilesX;
@@ -27,21 +27,23 @@ class World {
 
     this.vertMap = [this.vertices, this.verticesWater];
 
+    this.entities = [];
+
     this.renderQueue = [
       {x: 0, y: 0, numTilesX: this.numTilesX, numTilesY: this.numTilesY, materialIndex: null},
     ];
     this.TileManager = new TileLookupManager(tileSize);
-    // this.input = new InputComponent(); // TODO move this to a player class;
-    // this.input.initListeners(document);
+    this.input = new InputComponent(); // TODO move this to a player class;
+    this.input.initListeners(document);
     this.sculpComponent = new SculptComponent(this, 4, 2.5);  // TODO move this to a player class;
 
     // TODO create a player class based on Entity which contains the inputComponent. There can only be one input component active at any time locally
-    // this.input.register('leftMouseButton',
-    //   () => this.sculpComponent.sculpting = true,
-    //   () => {
-    //     this.sculpComponent.sculpting = false;
-    //     this.sculpComponent._lastSculpt = null;
-    //   })
+    this.input.register('leftMouseButton',
+      () => this.sculpComponent.sculpting = true,
+      () => {
+        this.sculpComponent.sculpting = false;
+        this.sculpComponent._lastSculpt = null;
+      });
   }
 
   _generateVertices(noiseFunction) {
@@ -98,8 +100,9 @@ class World {
     }
   }
 
-  update() {
-    this.sculpComponent.tick();
+  update(delta) {
+    this.sculpComponent.tick(delta);
+    this.entities.forEach(e => e.update(delta));
   }
 
   render() {
@@ -127,10 +130,16 @@ class World {
       util.debug.renderDebugGrid(this);
       util.debug.renderDebugEdgeDensity(this, 0);
     }
+
+    // TODO there should be a separate canvas for rendering dynamic objects like entities
+    this.entities.forEach(e => e.render());
   }
 
-  main = (delta) => {
+  main = (now) => {
+    const delta = this.last ? (now - this.last) / 1000 : 0;
+    this.last = now;
     this.update(delta);
-    this.render();
+    this.render(delta);
+    window.requestAnimationFrame(this.main);
   };
 }

@@ -12,10 +12,11 @@ class Entity {
     this.inputVelocityLength = 60;
     this.isFalling = true;
     this.airControl = 0.3;
-    this.elasticity = 0.05;
+    this.elasticity = 0.3;
     this.gravityVector = [0, 48];
-    this.airDrag = 0.95;
+    this.airDrag = 0.97;
     this.groundFriction = 0.92;
+    this.queue = []; // TODO temp
   }
 
   getCoordinates(world, pos) {
@@ -32,10 +33,21 @@ class Entity {
     }
 
     const [x, y] = this.getCoordinates(world, this.pos);
-    util.canvas.renderCircle(this.ctx, [x * world.tileSize + world.tileSize/2, y * world.tileSize + world.tileSize/2], this.radius / 4, 'green');
+    // util.canvas.renderCircle(this.ctx, [x * world.tileSize + world.tileSize / 2, y * world.tileSize + world.tileSize / 2], this.radius / 4, 'green');
+
+    this.queue.forEach((fn) => fn());
+    this.queue = [];
   }
 
   update = (delta) => {
+    if (world.input._mappings['jump'].active) {
+      // if (!entity.isFalling) {
+      // TODO make it possible to add impulses by passing the velocity scaled to a second
+      entity.velocity = util.vector.add(this.velocity, [0, -100 * delta])
+      // }
+    }
+
+
     this.velocity[0] *= this.airDrag;
     this.velocity[1] *= this.airDrag;
     this.velocity[0] += this.gravityVector[0] * delta;
@@ -65,62 +77,79 @@ class Entity {
 
 
   collision() {
-    // TODO get neighbouring tiles,
-    //  check collision for all lines found on all tiles,
-    //  Either average out all collision points and normals for correction or ignore all but the nearest collision point
-    //  Fix the unwanted slide effect when entity is already touching floor (it continuously corrects towards the surface normal)
-    const [x, y] = this.getCoordinates(world, this.pos);
-    const edges = world._getTileEdges(x, y, 0);
-    let tileIndex = -1;
-    let tileIsoLines = [];
+    // TODO add an additional check to verify whether entity passed through the terrain line with high speed.
+    //  Take currentPos of entity with projectedPos and call a lineLine(this.pos, projectedPos) collision check.
+    const lines = [];
 
-    if (edges) {
-      tileIndex = world.TileManager._getTileLookupIndex(edges, world.tileDensityThreshold);
-
-      if (tileIndex !== 0) {
-        const pathData = world.TileManager._lookupTilePathData(edges, world.tileDensityThreshold);
-        let didCollide = false;
-        tileIsoLines = pathData.reduce((acc, cur, i, arr) => {
-          if (cur && cur[2] === 'iso-start') acc.push([cur, arr[i + 1]]);
-          return acc;
-        }, []);
-
-
-        tileIsoLines.forEach(line => {
-          const [from, to] = line;
-          const fromActual = util.vector.add(util.vector.multiplyBy([x, y], world.tileSize), util.vector.multiplyBy(from, world.tileSize));
-          const toActual = util.vector.add(util.vector.multiplyBy([x, y], world.tileSize), util.vector.multiplyBy(to, world.tileSize));
-
-          const [collides, point, normal] = util.vector.lineCircle(fromActual, toActual, this.pos, this.radius);
-            util.canvas.renderLine(world.ctx, fromActual, toActual, collides && point && normal ? 'red' : 'green', 5);
-          if (collides && point && normal) {
-            didCollide = true;
-
-            // util.canvas.renderLine(world.ctx, fromActual, toActual, 'red', 5);
-
-            const correctedPos = util.vector.subtract(point, util.vector.multiplyBy(normal, this.radius));
-            // this.pos[0] = this.isFalling ? correctedPos[0] : this.pos[0]; // TODO prevents sliding but still not 100% correct
-            this.pos[0] = correctedPos[0];
-            this.pos[1] = correctedPos[1];
-
-            if (Math.abs(this.velocity[1] * this.elasticity) > 1.5) {
-              console.log('bounce', this.velocity);
-              this.velocity[1] = -(this.velocity[1] * this.elasticity);
-            } else {
-              this.velocity[1] = 0;
+    // Get all near lines
+    const centerCoords = this.getCoordinates(world, this.pos);
+    const offsetSize = 1;
+    for (let offsetX = -offsetSize; offsetX <= offsetSize; offsetX++) {
+      for (let offsetY = -offsetSize; offsetY <= offsetSize; offsetY++) {
+        const [x, y] = util.vector.add(centerCoords, [offsetX, offsetY]);
+        const edges = world._getTileEdges(x, y, 0);
+        if (edges) {
+          if (world.TileManager._getTileLookupIndex(edges, world.tileDensityThreshold) === 0) continue;
+          const pathData = world.TileManager._lookupTilePathData(edges, world.tileDensityThreshold);
+          const tileLines = pathData.reduce((acc, cur, i, arr) => {
+            if (cur && cur[2] === 'iso-start') {
+              const fromActual = util.vector.add(util.vector.multiplyBy([x, y], world.tileSize), util.vector.multiplyBy(arr[i], world.tileSize));
+              const toActual = util.vector.add(util.vector.multiplyBy([x, y], world.tileSize), util.vector.multiplyBy(arr[i + 1], world.tileSize));
+              acc.push([fromActual, toActual]);
             }
-
-            util.canvas.renderCircle(world.ctx, point, 6, 'green')
-          }
-        });
-
-        this.isFalling = !didCollide;
-        if (!this.isFalling) {
-          this.velocity[0] = this.velocity[0] * this.groundFriction;
+            return acc;
+          }, []);
+          lines.push(...tileLines);
         }
       }
     }
 
+    // Check all nearby lines for collisions
+    const collideData = [];
+    for (const [from, to] of lines) {
+      try {
+        const [collides, point, normal] = util.vector.lineCircle(from, to, this.pos, this.radius);
+        if (collides) collideData.push([point, normal]);
+        this.queue.push(() => util.canvas.renderLine(world.ctx, from, to, collides ? 'red' : 'green', 4));
+      } catch (e) {
+        console.log('err', e)
+      }
+    }
+
+    // resolve collision with nearest collided point
+    if (collideData.length) {
+      this.isFalling = false;
+
+      const distances = collideData.map(c => util.vector.distance(this.pos, c[0]));
+      const nearestIndex = distances.indexOf(Math.min(...distances));
+      let [point, normal] = collideData[nearestIndex];
+
+      if (collideData.length >= 2) {
+        distances.splice(nearestIndex, 1)
+        collideData.splice(nearestIndex, 1)
+        const secondNearestIndex = distances.indexOf(Math.min(...distances));
+        const [point2, normal2] = collideData[secondNearestIndex];
+        point = util.vector.divideBy(util.vector.add(point, point2), 2);
+        normal = util.vector.divideBy(util.vector.add(normal, normal2), 2);
+      }
+
+      const correctedPos = util.vector.subtract(point, util.vector.multiplyBy(normal, this.radius));
+      // this.pos[0] = this.isFalling ? correctedPos[0] : this.pos[0]; // TODO prevents sliding but still not 100% correct
+      this.pos[0] = correctedPos[0];
+      this.pos[1] = correctedPos[1];
+
+      if (Math.abs(this.velocity[1] * this.elasticity) > 1.5) {
+        console.log('bounce', this.velocity);
+        this.velocity[1] = -(this.velocity[1] * this.elasticity);
+      } else {
+        this.velocity[1] = 0;
+      }
+    }
+
+    this.isFalling = !collideData.length;
+    if (!this.isFalling) {
+      this.velocity[0] = this.velocity[0] * this.groundFriction;
+    }
   }
 
   addInput(delta) {
