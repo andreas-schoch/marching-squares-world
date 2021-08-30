@@ -13,6 +13,9 @@ class InputComponent {
       moveRight: {key: "d", active: false, type: "action", listeners: {onPress: [], onRelease: []}, direction: [1, 0]},
       jump: {key: " ", active: false, type: "action", listeners: {onPress: [], onRelease: []}},
       shift: {key: "Shift", active: false, type: "action", listeners: {onPress: [], onRelease: []}},
+      dig: {key: "enter", active: false, type: "action", listeners: {onPress: [], onRelease: []}},
+      arrowUp: {key: "enter", active: false, type: "action", listeners: {onPress: [], onRelease: []}},
+      arrowDown: {key: "enter", active: false, type: "action", listeners: {onPress: [], onRelease: []}},
     };
 
     this._reverseMappings = {
@@ -24,6 +27,9 @@ class InputComponent {
       'key d': 'moveRight',
       'key  ': 'jump',
       'key Shift': 'shift',
+      'key Enter': 'dig',
+      'key ArrowUp': 'arrowUp',
+      'key ArrowDown': 'arrowDown',
     };
 
     this._inputHandlers = {
@@ -100,3 +106,5 @@ class InputComponent {
     element.addEventListener("mousemove", this._handleMouseMove);
   };
 }
+
+// FIXME input sometimes not released when pressing multiple keys

@@ -1,4 +1,4 @@
-const world = new World(20, 75, 32);
+const world = new World(20, 14 * 5, 6 * 5);
 
 noise.seed(Math.random());
 world._generateVertices((x, y) => {
@@ -46,26 +46,58 @@ world.entities.push(entity);
 // world.entities.push(entity2);
 
 world.input.register('moveLeft',
-  () => entity.input = util.vector.add(entity.input, world.input._mappings['moveLeft'].direction),
+  () => {
+    entity.input = util.vector.add(entity.input, world.input._mappings['moveLeft'].direction);
+    // entity.face = 'left';
+  },
   () => entity.input = util.vector.subtract(entity.input, world.input._mappings['moveLeft'].direction)
 )
 
 world.input.register('moveRight',
-  () => entity.input = util.vector.add(entity.input, world.input._mappings['moveRight'].direction),
+  () => {
+    entity.input = util.vector.add(entity.input, world.input._mappings['moveRight'].direction);
+    // entity.face = 'right';
+
+  },
   () => entity.input = util.vector.subtract(entity.input, world.input._mappings['moveRight'].direction)
 )
 
-world.input.register('moveUp',
-  () => entity.input = util.vector.add(entity.input, world.input._mappings['moveUp'].direction),
-  () => entity.input = util.vector.subtract(entity.input, world.input._mappings['moveUp'].direction)
-)
+// world.input.register('moveUp',
+//   () => entity.input = util.vector.add(entity.input, world.input._mappings['moveUp'].direction),
+//   () => entity.input = util.vector.subtract(entity.input, world.input._mappings['moveUp'].direction)
+// )
+//
+// world.input.register('moveDown',
+//   () => entity.input = util.vector.add(entity.input, world.input._mappings['moveDown'].direction),
+//   () => entity.input = util.vector.subtract(entity.input, world.input._mappings['moveDown'].direction)
+// )
 
-world.input.register('moveDown',
-  () => entity.input = util.vector.add(entity.input, world.input._mappings['moveDown'].direction),
-  () => entity.input = util.vector.subtract(entity.input, world.input._mappings['moveDown'].direction)
-)
+// TODO create projectile class based on Entity which explodes when colliding
+// world.input.register('leftMouseButton',
+//   () => {
+//   const proj = new Entity(world.ctx, [0, 0], entity.pos, [20, -10]);
+//   world.entities.push(proj);
+//   },
+//   () => {
+//
+//   });
+
+// world.input.register('dig',
+//   () => { console.log('dig pressed')},
+//   () => this.sculpComponent._lastSculpt = null);
 
 requestAnimationFrame(world.main);
 
 // TODO - Introduce world space and screen space coordinates to be able to pan around the world beyond what the canvas shows at any moment in time
 //        As well as zooming to increase or decrease the distance to the "z" axis. Helpful resource: https://www.youtube.com/watch?v=ZQ8qtAizis4
+
+// TODO - move all player code in Entity to Player class
+
+// TODO - Create GameMode/Game class which handles the game state like: turns, scores, players, winning conditions, restart, reset, UI etc
+
+// TODO - Introduce networking support for:
+//  - Client-Server: Make it possible to run a headless simulation ona node server where players are connected via websocket
+//  - Peer-to-Peer: Via webrtc. One player takes the role of the authority just like a normal server while the others are all clients
+
+// TODO - Once experimental phase is nearing its end, rewrite everything in typescript and make it an npm package (before introducing networking)
+//  At this stage also separate all components into standalone npm packages (e.g util.vector, InputComponent marching squares stuff)

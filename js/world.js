@@ -43,28 +43,16 @@ class World {
     this.TileManager = new TileLookupManager(tileSize);
     this.input = new InputComponent(); // TODO move this to a player class;
     this.input.initListeners(document);
-    this.sculpComponent = new SculptComponent(this, 4, 2.5);  // TODO move this to a player class;
-
-    // TODO create a player class based on Entity which contains the inputComponent. There can only be one input component active at any time locally
-    this.input.register('leftMouseButton',
-      () => this.sculpComponent.sculpting = true,
-      () => {
-        this.sculpComponent.sculpting = false;
-        this.sculpComponent._lastSculpt = null;
-      });
+    this.sculpComponent = new SculptComponent(this, 2, 1.5);  // TODO move this to a player class;
   }
 
   _generateVertices(noiseFunction) {
     for (let y = 0; y <= this.numTilesY; y++) {
       const row = [];
-      // const rowWater = [];
       for (let x = 0; x <= this.numTilesX; x++) {
-        const value = noiseFunction.call(this, x, y);
-        row.push(value);
-        // rowWater.push(value === this.tileDensityMax ? 0 : this.tileDensityMax);
+        row.push(noiseFunction.call(this, x, y));
       }
       this.vertices.push(row);
-      // this.verticesWater.push(rowWater);
     }
   }
 
@@ -103,13 +91,18 @@ class World {
         this.ctx.stroke(path2DIso);
         this.ctx.setTransform(1, 0, 0, 1, 0, 0);
       }
-
-
     }
   }
 
   update(delta) {
-    this.sculpComponent.tick(delta);
+    if (world.input._mappings['leftMouseButton'].active) {
+      const offset = this.canvas.getBoundingClientRect(); // offset of canvas to topleft
+      const sculptPos = [this.input.lastMouseMoveEvent.clientX - offset.x, this.input.lastMouseMoveEvent.clientY - offset.y];
+      world.sculpComponent.strength = (world.input._mappings.shift.active ? -180 : 180) * delta;
+      world.sculpComponent.radiusXY = 5
+      world.sculpComponent.sculpt(sculptPos);
+    }
+
     this.entities.forEach(e => e.update(delta));
   }
 

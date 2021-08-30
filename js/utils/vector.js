@@ -34,6 +34,7 @@ class VectorUtils {
   normalize = (vector) => {
     const magnitude = Math.hypot(vector[0], vector[1]);
     // const magnitude = Math.sqrt(vector[0] * vector[0] + vector[1] * vector[1]);  // alternative
+    if (!magnitude) return vector;
     return [vector[0] / magnitude, vector[1] / magnitude];
   };
 
@@ -85,6 +86,14 @@ class VectorUtils {
   };
 
   lookAtDirection = (from, to) => this.normalize(this.relativeVector(from, to));
+
+  perpendicular = (v) => [v[0], -v[1]];
+
+  reflection = (velocity, normal) => {
+    // formula: Reflection = velocity − 2 * normal * (dot(velocity, normal))
+    // Source: https://math.stackexchange.com/questions/36292/why-does-the-formula-for-calculating-a-reflection-vector-work
+    return this.subtract(velocity, this.multiplyBy(normal, 2 * this.dot(velocity, normal)));
+  }
 
   lineCircle(lineFrom, lineTo, circle, r) {
     // Collision detection mostly based on: https://www.jeffreythompson.org/collision-detection/line-circle.php

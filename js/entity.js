@@ -3,13 +3,15 @@ class Entity {
   constructor(ctx, input, pos, initialVelocity = [0, 0]) {
     this.ctx = ctx;
     this.input = input;
+    this.prevInput = input;
     this.prevVelocity = [0, 0];
-
+    this.face = 'left';
+    this.angle = 0;
     this.pos = pos;
     this.radius = 20;
     this.velocity = initialVelocity;
     this.maxVelocityLength = 35;
-    this.inputVelocityLength = 45;
+    this.inputVelocityLength = 30;
     this.isFalling = true;
     this.airControl = 0.3;
     this.elasticity = 0.3;
@@ -19,7 +21,7 @@ class Entity {
     this.queue = []; // TODO temp
 
     // body gradient
-    this.gradientBody = ctx.createRadialGradient(5, this.radius/ -3, 2, 0, 0, this.radius - 5);
+    this.gradientBody = ctx.createRadialGradient(5, this.radius / -3, 2, 0, 0, this.radius - 5);
     this.gradientBody.addColorStop(0, "khaki");
     this.gradientBody.addColorStop(1, "darkkhaki");
   }
@@ -31,29 +33,53 @@ class Entity {
   }
 
   render = () => {
+    if (world.input._mappings['jump'].active) {
+      const exhaustEnd = util.vector.add(this.pos, [this.input[0] * -5, Math.min(Math.max(this.radius + this.velocity[1] * -5, 25), 35)])
+      util.canvas.renderLine(world.ctx, util.vector.add(this.pos, [0, this.radius]), exhaustEnd, 'red', 7);
+    }
+
     world.ctx.translate(this.pos[0], this.pos[1]);
     util.canvas.renderCircle(this.ctx, [0, 0], this.radius, this.gradientBody);
     world.ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-    if (this.isFalling) {
-      util.canvas.renderCircle(this.ctx, this.pos, this.radius / 4, 'khaki');
+
+    const dot = util.vector.dot(util.vector.normalize(this.input), util.vector.normalize(this.prevInput));
+    console.log('dot', dot)
+    if (dot <= 0 && util.vector.length(this.input)) {
+      console.log('turn around', dot);
+      this.face = this.input[0] > 0 ? 'right' : 'left';
+      this.prevInput = this.input;
     }
 
-    const [x, y] = this.getCoordinates(world, this.pos);
-    // util.canvas.renderCircle(this.ctx, [x * world.tileSize + world.tileSize / 2, y * world.tileSize + world.tileSize / 2], this.radius / 4, 'green');
+    const rotatedOffset = util.vector.rotate([this.face === 'left' ? -this.radius : this.radius, 0], this.face === 'left' ? this.angle : -this.angle);
+    // const facePos = util.vector.add(this.pos, rotatedOffset);
+    const facePos = util.vector.add(this.pos, util.vector.multiplyBy(rotatedOffset, 1));
+
+    util.canvas.renderCircle(world.ctx, facePos, 5, world.input._mappings['dig'].active ? 'red' : 'wheat');
 
     this.queue.forEach((fn) => fn());
     this.queue = [];
   }
 
   update = (delta) => {
-    if (world.input._mappings['jump'].active) {
-      // if (!entity.isFalling) {
-      // TODO make it possible to add impulses by passing the velocity scaled to a second
-      entity.velocity = util.vector.add(this.velocity, [0, -85 * delta])
-      // }
+    if (world.input._mappings['moveUp'].active) {
+      this.angle = Math.min(Math.max(this.angle - 150 * delta, -90), 90)
+    } else if (world.input._mappings['moveDown'].active) {
+      this.angle = Math.min(Math.max(this.angle + 150 * delta, -90), 90)
     }
 
+    if (world.input._mappings['jump'].active) {
+      const brake = this.velocity[1] <= -2.5;
+      entity.velocity = util.vector.add(this.velocity, [0, -this.gravityVector[1] * (brake ? 1.2 : 1.8) * delta])
+    }
+
+    if (world.input._mappings['dig'].active) {
+      world.sculpComponent.strength = -25 * delta;
+      world.sculpComponent.radiusXY = 3;
+      const rotatedOffset = util.vector.rotate([this.face === 'left' ? -this.radius : this.radius, 0], this.face === 'left' ? this.angle : -this.angle);
+      const digPos = util.vector.add(this.pos, util.vector.multiplyBy(rotatedOffset, 2));
+      world.sculpComponent.sculpt(digPos);
+    }
 
     this.velocity[0] *= this.airDrag;
     this.velocity[1] *= this.airDrag;
@@ -149,11 +175,15 @@ class Entity {
       this.pos[1] = correctedPos[1];
 
       if (this.isFalling && Math.abs(util.vector.length(this.velocity) * this.elasticity) > 1.5) {
-        // formula: Reflection = velocity − 2 * normal * (dot(velocity, normal))
-        // Source: https://math.stackexchange.com/questions/36292/why-does-the-formula-for-calculating-a-reflection-vector-work
-        const reflect = util.vector.subtract(this.velocity, util.vector.multiplyBy(normal, 2 * util.vector.dot(this.velocity, normal)));
-        this.velocity = util.vector.multiplyBy(reflect, this.elasticity);
-        console.log('bounce', this.velocity);
+        const strength = util.vector.length(this.velocity);
+        this.velocity = util.vector.multiplyBy(util.vector.reflection(this.velocity, normal), this.elasticity);
+        console.log('bounce', this.velocity, strength);
+
+        if (strength >= 10) {
+          world.sculpComponent.radiusXY = 3;
+          world.sculpComponent.strength = -strength * 0.15;
+          world.sculpComponent.sculpt(point);
+        }
       } else {
         // TODO maybe only reduce velocity based on collision direction
         //  E.g. if colliding straight down to a horizontal line --> velocity[1] = 0 otherwise rotated accordingly
