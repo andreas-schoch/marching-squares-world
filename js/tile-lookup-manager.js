@@ -143,11 +143,8 @@ class TileLookupManager {
     return index;
   }
 
-  // (x - a) / (b - a)
-
   inverseLerp = (eA, eB, threshold) => {
     return (threshold - eA) / (eB - eA);
-    // return (threshold - eA) / (eB - eA);
   };
 }
 

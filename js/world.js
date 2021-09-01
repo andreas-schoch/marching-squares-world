@@ -26,7 +26,7 @@ class World {
     this.numTilesX = numTilesX;
     this.numTilesY = numTilesY;
 
-    this.tileDensityMax = 64;
+    this.tileDensityMax = 128;
     this.tileDensityThreshold = (this.tileDensityMax / 2);
 
     this.materialColor = [this.gradientground, 'blue', 'green', 'red'];
@@ -59,10 +59,13 @@ class World {
   _getTileEdges(x, y, materialIndex) {
     try {
       const verts = this.vertMap[materialIndex];
-      const edge1 = verts[y][x];
-      const edge2 = verts[y][x + 1];
-      const edge3 = verts[y + 1][x + 1];
-      const edge4 = verts[y + 1][x];
+      // Note: Internally edge values are still stored as floats but get transformed into integers to rendering the map
+      // We use integers mainly to limit the num of cached Path2D objects and to simplify serialization for networking
+      // Stored as floats so when sculpting the terrain fractional changes still get applied when far from center
+      const edge1 = parseInt(verts[y][x]);
+      const edge2 = parseInt(verts[y][x + 1]);
+      const edge3 = parseInt(verts[y + 1][x + 1]);
+      const edge4 = parseInt(verts[y + 1][x]);
       return [edge1, edge2, edge3, edge4];
     } catch (e) {
       return false;
