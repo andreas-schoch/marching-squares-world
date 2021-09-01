@@ -62,6 +62,8 @@ world.input.register('moveRight',
   () => entity.input = util.vector.subtract(entity.input, world.input._mappings['moveRight'].direction)
 )
 
+world.input.register('q', () => entity.mode = entity.mode === 'dig' ? 'normal' : 'dig');
+
 // world.input.register('moveUp',
 //   () => entity.input = util.vector.add(entity.input, world.input._mappings['moveUp'].direction),
 //   () => entity.input = util.vector.subtract(entity.input, world.input._mappings['moveUp'].direction)

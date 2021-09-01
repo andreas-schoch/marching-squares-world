@@ -4,6 +4,7 @@ class InputComponent {
     this.mousePos = null;
     this.lastMouseMoveEvent = null;
     // TODO if feasible get rid of type property. It seems unnecessary here
+    // TODO instead of hardcoding it here like this, it should read the mappings from a config file (json) which then is used to create this object
     this._mappings = {
       leftMouseButton: {active: false, type: "mouse", listeners: {onPress: [], onRelease: []}},
       rightMouseButton: {active: false, type: "mouse", listeners: {onPress: [], onRelease: []}},
@@ -13,9 +14,10 @@ class InputComponent {
       moveRight: {key: "d", active: false, type: "action", listeners: {onPress: [], onRelease: []}, direction: [1, 0]},
       jump: {key: " ", active: false, type: "action", listeners: {onPress: [], onRelease: []}},
       shift: {key: "Shift", active: false, type: "action", listeners: {onPress: [], onRelease: []}},
-      dig: {key: "enter", active: false, type: "action", listeners: {onPress: [], onRelease: []}},
-      arrowUp: {key: "enter", active: false, type: "action", listeners: {onPress: [], onRelease: []}},
-      arrowDown: {key: "enter", active: false, type: "action", listeners: {onPress: [], onRelease: []}},
+      dig: {key: "x", active: false, type: "action", listeners: {onPress: [], onRelease: []}},
+      arrowUp: {key: "arrowUp", active: false, type: "action", listeners: {onPress: [], onRelease: []}},
+      arrowDown: {key: "arrowDown", active: false, type: "action", listeners: {onPress: [], onRelease: []}},
+      q: {key: "q", active: false, type: "action", listeners: {onPress: [], onRelease: []}},
     };
 
     this._reverseMappings = {
@@ -27,9 +29,10 @@ class InputComponent {
       'key d': 'moveRight',
       'key  ': 'jump',
       'key Shift': 'shift',
-      'key Enter': 'dig',
+      'key x': 'dig',
       'key ArrowUp': 'arrowUp',
       'key ArrowDown': 'arrowDown',
+      'key q': 'q'
     };
 
     this._inputHandlers = {
@@ -97,7 +100,6 @@ class InputComponent {
     this.lastMouseMoveEvent = evt;
   };
 
-  // TODO refactor to use seperate handlers for keys and mouse. Current setup just makes it more difficult
   initListeners = (element) => {
     element.addEventListener("keydown", this._handleInput);
     element.addEventListener("keyup", this._handleInput);

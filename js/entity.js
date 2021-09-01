@@ -19,6 +19,7 @@ class Entity {
     this.airDrag = 0.98;
     this.groundFriction = 0.92;
     this.queue = []; // TODO temp
+    this.mode = 'normal';
 
     // body gradient
     this.gradientBody = ctx.createRadialGradient(5, this.radius / -3, 2, 0, 0, this.radius - 5);
@@ -33,7 +34,7 @@ class Entity {
   }
 
   render = () => {
-    if (world.input._mappings['jump'].active) {
+    if (world.input._mappings['jump'].active && this.mode !== 'dig') {
       const exhaustEnd = util.vector.add(this.pos, [this.input[0] * -5, Math.min(Math.max(this.radius + this.velocity[1] * -5, 25), 35)])
       util.canvas.renderLine(world.ctx, util.vector.add(this.pos, [0, this.radius]), exhaustEnd, 'red', 7);
     }
@@ -44,7 +45,6 @@ class Entity {
 
 
     const dot = util.vector.dot(util.vector.normalize(this.input), util.vector.normalize(this.prevInput));
-    console.log('dot', dot)
     if (dot <= 0 && util.vector.length(this.input)) {
       console.log('turn around', dot);
       this.face = this.input[0] > 0 ? 'right' : 'left';
@@ -52,10 +52,12 @@ class Entity {
     }
 
     const rotatedOffset = util.vector.rotate([this.face === 'left' ? -this.radius : this.radius, 0], this.face === 'left' ? this.angle : -this.angle);
-    // const facePos = util.vector.add(this.pos, rotatedOffset);
     const facePos = util.vector.add(this.pos, util.vector.multiplyBy(rotatedOffset, 1));
-
-    util.canvas.renderCircle(world.ctx, facePos, 5, world.input._mappings['dig'].active ? 'red' : 'wheat');
+    if (this.mode === 'dig') {
+      util.canvas.renderCircle(world.ctx, facePos, 5, world.input._mappings['jump'].active ? 'red' : 'salmon');
+    } else {
+      util.canvas.renderCircle(world.ctx, facePos, 5, 'wheat');
+    }
 
     this.queue.forEach((fn) => fn());
     this.queue = [];
@@ -69,16 +71,16 @@ class Entity {
     }
 
     if (world.input._mappings['jump'].active) {
-      const brake = this.velocity[1] <= -2.5;
-      entity.velocity = util.vector.add(this.velocity, [0, -this.gravityVector[1] * (brake ? 1.2 : 1.8) * delta])
-    }
-
-    if (world.input._mappings['dig'].active) {
-      world.sculpComponent.strength = -25 * delta;
-      world.sculpComponent.radiusXY = 3;
-      const rotatedOffset = util.vector.rotate([this.face === 'left' ? -this.radius : this.radius, 0], this.face === 'left' ? this.angle : -this.angle);
-      const digPos = util.vector.add(this.pos, util.vector.multiplyBy(rotatedOffset, 2));
-      world.sculpComponent.sculpt(digPos);
+      if (this.mode === 'dig') {
+        world.sculpComponent.strength = (world.input._mappings['shift'].active ? -25 : 25) * delta;
+        world.sculpComponent.radiusXY = 3;
+        const rotatedOffset = util.vector.rotate([this.face === 'left' ? -this.radius : this.radius, 0], this.face === 'left' ? this.angle : -this.angle);
+        const digPos = util.vector.add(this.pos, util.vector.multiplyBy(rotatedOffset, 2));
+        world.sculpComponent.sculpt(digPos);
+      } else {
+        const brake = this.velocity[1] <= -2.5;
+        entity.velocity = util.vector.add(this.velocity, [0, -this.gravityVector[1] * (brake ? 1.2 : 1.8) * delta])
+      }
     }
 
     this.velocity[0] *= this.airDrag;
@@ -209,3 +211,5 @@ class Entity {
     }
   }
 }
+
+// TODO rotate body based on surface normal and project input movement to surface normal (imagine a car driving along a plane, it does adjust as well)
