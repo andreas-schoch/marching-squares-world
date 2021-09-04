@@ -21,6 +21,9 @@ class Entity {
     this.queue = []; // TODO temp
     this.mode = 'normal';
 
+    this.collisionPoint = null;
+    this.collisionNormal = null;
+
     // body gradient
     this.gradientBody = ctx.createRadialGradient(5, this.radius / -3, 2, 0, 0, this.radius - 5);
     this.gradientBody.addColorStop(0, "khaki");
@@ -33,15 +36,15 @@ class Entity {
     return [x, y];
   }
 
-  render = () => {
+  render = (ctx) => {
     if (world.input._mappings['jump'].active && this.mode !== 'dig') {
       const exhaustEnd = util.vector.add(this.pos, [this.input[0] * -5, Math.min(Math.max(this.radius + this.velocity[1] * -5, 25), 35)])
-      util.canvas.renderLine(world.ctx, util.vector.add(this.pos, [0, this.radius]), exhaustEnd, 'red', 7);
+      util.canvas.renderLine(ctx, util.vector.add(this.pos, [0, this.radius]), exhaustEnd, 'red', 7);
     }
 
-    world.ctx.translate(this.pos[0], this.pos[1]);
-    util.canvas.renderCircle(this.ctx, [0, 0], this.radius, this.gradientBody);
-    world.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.translate(this.pos[0], this.pos[1]);
+    util.canvas.renderCircle(ctx, [0, 0], this.radius, this.gradientBody);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
 
 
     const dot = util.vector.dot(util.vector.normalize(this.input), util.vector.normalize(this.prevInput));
@@ -54,16 +57,20 @@ class Entity {
     const rotatedOffset = util.vector.rotate([this.face === 'left' ? -this.radius : this.radius, 0], this.face === 'left' ? this.angle : -this.angle);
     const facePos = util.vector.add(this.pos, util.vector.multiplyBy(rotatedOffset, 1));
     if (this.mode === 'dig') {
-      util.canvas.renderCircle(world.ctx, facePos, 5, world.input._mappings['jump'].active ? 'red' : 'salmon');
+      util.canvas.renderCircle(ctx, facePos, 5, world.input._mappings['jump'].active ? 'red' : 'salmon');
     } else {
-      util.canvas.renderCircle(world.ctx, facePos, 5, 'wheat');
+      util.canvas.renderCircle(ctx, facePos, 5, 'wheat');
     }
 
-    this.queue.forEach((fn) => fn());
+    this.queue.forEach((fn) => fn(ctx));
     this.queue = [];
   }
 
   update = (delta) => {
+    if (delta) {
+      this.queue.push(ctx => util.canvas.renderText(ctx, `fps: ${(1 / delta).toFixed(1)}`, [20, 20], 'left', 18));
+    }
+
     if (world.input._mappings['moveUp'].active) {
       this.angle = Math.min(Math.max(this.angle - 150 * delta, -90), 90)
     } else if (world.input._mappings['moveDown'].active) {
@@ -72,7 +79,7 @@ class Entity {
 
     if (world.input._mappings['jump'].active) {
       if (this.mode === 'dig') {
-        world.sculpComponent.strength = (world.input._mappings['shift'].active ? -25 : 25) * delta;
+        world.sculpComponent.strength = (world.input._mappings['shift'].active ? 75 : -75) * delta;
         world.sculpComponent.radiusXY = 3;
         const rotatedOffset = util.vector.rotate([this.face === 'left' ? -this.radius : this.radius, 0], this.face === 'left' ? this.angle : -this.angle);
         const digPos = util.vector.add(this.pos, util.vector.multiplyBy(rotatedOffset, 2));
@@ -145,24 +152,19 @@ class Entity {
       try {
         const [collides, point, normal] = util.vector.lineCircle(from, to, this.pos, this.radius);
         if (collides) collideData.push([point, normal]);
-        // this.queue.push(() => util.canvas.renderLine(world.ctx, from, to, collides ? 'red' : 'green', 4));
+        // this.queue.push((ctx) => util.canvas.renderLine(ctx, from, to, collides ? 'red' : 'green', 4));
       } catch (e) {
         console.log('err', e)
       }
     }
 
-    // resolve collision with nearest collided point
+    // resolve collision with nearest two collided points
     if (collideData.length) {
       const distances = collideData.map(c => util.vector.distance(this.pos, c[0]));
       const nearestIndex = distances.indexOf(Math.min(...distances));
       let [point, normal] = collideData[nearestIndex];
 
       if (collideData.length >= 2) {
-        // const pointAvg = util.vector.divideBy(util.vector.addAll(...collideData.map(c => c[0])), collideData.length);
-        // const normalAvg = util.vector.divideBy(util.vector.addAll(...collideData.map(c => c[1])), collideData.length);
-        // point = pointAvg;
-        // normal = normalAvg;
-
         distances.splice(nearestIndex, 1)
         collideData.splice(nearestIndex, 1)
         const secondNearestIndex = distances.indexOf(Math.min(...distances));
@@ -171,7 +173,10 @@ class Entity {
         normal = util.vector.divideBy(util.vector.add(normal, normal2), 2);
       }
 
-      const correctedPos = util.vector.subtract(point, util.vector.multiplyBy(normal, this.radius));
+      this.collisionPoint = point;
+      this.collisionNormal = normal;
+
+      const correctedPos = util.vector.subtract(this.collisionPoint, util.vector.multiplyBy(this.collisionNormal, this.radius));
       // this.pos[0] = this.isFalling ? correctedPos[0] : this.pos[0]; // TODO prevents sliding but still not 100% correct
       this.pos[0] = correctedPos[0];
       this.pos[1] = correctedPos[1];
@@ -192,6 +197,9 @@ class Entity {
         this.velocity[1] = 0;
         // this.velocity = [0, 0];
       }
+    } else {
+      this.collisionNormal = null;
+      this.collisionPoint = null;
     }
 
     this.isFalling = !collideData.length;
@@ -202,13 +210,8 @@ class Entity {
 
   addInput(delta) {
     const brake = this.isFalling ? this.airControl : 1;
-
-    try {
-      this.velocity[0] += this.input[0] * this.inputVelocityLength * brake * delta;
-      this.velocity[1] += this.input[1] * this.inputVelocityLength * brake * delta;
-    } catch (e) {
-      console.log('error', this.input);
-    }
+    this.velocity[0] += this.input[0] * this.inputVelocityLength * brake * delta;
+    this.velocity[1] += this.input[1] * this.inputVelocityLength * brake * delta;
   }
 }
 

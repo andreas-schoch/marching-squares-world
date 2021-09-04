@@ -1,15 +1,14 @@
-const world = new World(20, 14 * 5, 6 * 5);
+const world = new World(15, 70, 30);
 
 noise.seed(Math.random());
 world._generateVertices((x, y) => {
-  const n1 = noise.simplex2(x / 8, y / 8) * world.tileDensityMax / 1.5;
-  const n2 = noise.simplex2(x / 16, y / 16) * world.tileDensityMax / 2;
-  const n3 = noise.simplex2(x / 36, y / 36) * world.tileDensityMax;
+  const n1 = (noise.simplex2(x / 8, y / 8) * world.tileDensityMax) * 0.3;
+  const n2 = (noise.simplex2(x / 16, y / 16) * world.tileDensityMax) * 0.5;
+  const n3 = (noise.simplex2(x / 36, y / 36) * world.tileDensityMax) * 1.25;
   const n = (n1 + n2 + n3) / 3;
-  // const n = noise.simplex2(x / 5, y / 5) * world.tileDensityMax;
 
   const bias = ((y) / world.numTilesY);
-  return Math.round(n + (65 * bias));
+  return Math.round(n + (world.tileDensityMax * bias));
 });
 
 const btnSave = document.getElementById('btn-save');

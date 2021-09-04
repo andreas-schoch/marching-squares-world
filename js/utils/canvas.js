@@ -24,10 +24,11 @@ class CanvasUtils {
     ctx.stroke();
   }
 
-  renderText(ctx, text, position, alignment = 'center', fontSize = 12) {
+  renderText(ctx, text, position, alignment = 'center', fontSize = 50) {
     ctx.font = `${fontSize}px sans-serif`;
     ctx.textAlign = alignment;
     ctx.textBaseline = "middle";
+    ctx.fillStyle = 'black';
     ctx.fillText(text, position[0], position[1]);
   }
 

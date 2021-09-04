@@ -20,19 +20,22 @@
             height: 100vh;
         }
 
-        .canvas {
+        canvas {
+            position: absolute;
+        }
+
+        .canvas-terrain {
             box-shadow: 0 0 0 2px black;
             border-radius: 5px;
-            image-rendering: pixelated;
+            /*image-rendering: pixelated;*/
         }
+
     </style>
     <title>Document</title>
 </head>
 
 <body>
-<div class="wrap">
-    <canvas class="canvas" width="500" height="500"></canvas>
-</div>
+<div class="canvas-container"></div>
 
 <button id="btn-save">save</button>
 <button id="btn-load">load</button>
