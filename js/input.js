@@ -5,6 +5,8 @@ class InputComponent {
     this.lastMouseMoveEvent = null;
     // TODO if feasible get rid of type property. It seems unnecessary here
     // TODO instead of hardcoding it here like this, it should read the mappings from a config file (json) which then is used to create this object
+    // TODO instead of having a single direction property hardcoded, pass a direction interface with a unique identifier and the direction vector
+    //      then a direction can be accessed by that identifier to get the value (allowing multiple directional inputs)
     this._mappings = {
       leftMouseButton: {active: false, type: "mouse", listeners: {onPress: [], onRelease: []}},
       rightMouseButton: {active: false, type: "mouse", listeners: {onPress: [], onRelease: []}},
@@ -17,6 +19,8 @@ class InputComponent {
       dig: {key: "x", active: false, type: "action", listeners: {onPress: [], onRelease: []}},
       arrowUp: {key: "arrowUp", active: false, type: "action", listeners: {onPress: [], onRelease: []}},
       arrowDown: {key: "arrowDown", active: false, type: "action", listeners: {onPress: [], onRelease: []}},
+      arrowLeft: {key: "arrowLeft", active: false, type: "action", listeners: {onPress: [], onRelease: []}},
+      arrowRight: {key: "arrowRight", active: false, type: "action", listeners: {onPress: [], onRelease: []}},
       q: {key: "q", active: false, type: "action", listeners: {onPress: [], onRelease: []}},
     };
 
@@ -32,6 +36,8 @@ class InputComponent {
       'key x': 'dig',
       'key ArrowUp': 'arrowUp',
       'key ArrowDown': 'arrowDown',
+      'key ArrowLeft': 'arrowLeft',
+      'key ArrowRight': 'arrowRight',
       'key q': 'q'
     };
 

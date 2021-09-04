@@ -29,6 +29,6 @@ class SculptComponent {
     const startY = Math.min(Math.max(pos[1] - this.radiusXY, 0), this.worldRef.numTilesY);
     const numTilesX = Math.min(this.radiusXY * 2, this.worldRef.numTilesX);
     const numTilesY = Math.min(this.radiusXY * 2, this.worldRef.numTilesY);
-    this.worldRef.renderQueue.push({x: startX, y: startY, numTilesX: numTilesX, numTilesY: numTilesY, materialIndex: null});
+    this.worldRef.renderQueue.push({x: startX - 1, y: startY - 1, numTilesX: numTilesX + 2, numTilesY: numTilesY + 2, materialIndex: null});
   };
 }

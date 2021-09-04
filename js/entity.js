@@ -4,6 +4,7 @@ class Entity {
     this.ctx = ctx;
     this.input = input;
     this.prevInput = input;
+    this.lastActualInput = input;
     this.prevVelocity = [0, 0];
     this.face = 'left';
     this.angle = 0;
@@ -13,9 +14,10 @@ class Entity {
     this.maxVelocityLength = 35;
     this.inputVelocityLength = 30;
     this.isFalling = true;
+    this.numFramesFalling = 0;
     this.airControl = 0.3;
-    this.elasticity = 0.3;
-    this.gravityVector = [0, 40];
+    this.elasticity = 0.4;
+    this.gravityVector = [0, 30];
     this.airDrag = 0.98;
     this.groundFriction = 0.92;
     this.queue = []; // TODO temp
@@ -46,6 +48,9 @@ class Entity {
     util.canvas.renderCircle(ctx, [0, 0], this.radius, this.gradientBody);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
+    if (this.isFalling) {
+      // util.canvas.renderCircle(ctx, this.pos, this.radius / 2, 'red')
+    }
 
     const dot = util.vector.dot(util.vector.normalize(this.input), util.vector.normalize(this.prevInput));
     if (dot <= 0 && util.vector.length(this.input)) {
@@ -152,7 +157,7 @@ class Entity {
       try {
         const [collides, point, normal] = util.vector.lineCircle(from, to, this.pos, this.radius);
         if (collides) collideData.push([point, normal]);
-        // this.queue.push((ctx) => util.canvas.renderLine(ctx, from, to, collides ? 'red' : 'green', 4));
+        // this.queue.push((ctx) => util.canvas.renderLine(ctx, from, to, collides ? 'red' : 'green', 3));
       } catch (e) {
         console.log('err', e)
       }
@@ -160,36 +165,32 @@ class Entity {
 
     // resolve collision with nearest two collided points
     if (collideData.length) {
-      const distances = collideData.map(c => util.vector.distance(this.pos, c[0]));
-      const nearestIndex = distances.indexOf(Math.min(...distances));
-      let [point, normal] = collideData[nearestIndex];
+      const distances = collideData.map((c, i) => [i, util.vector.distance(this.pos, c[0])]);
+      const sortedDistances = distances.sort((t1, t2) => t1[1] - t2[1]);
+      const nearestTwo = sortedDistances.slice(0, 2).map(([i, d]) => collideData[i]);
 
-      if (collideData.length >= 2) {
-        distances.splice(nearestIndex, 1)
-        collideData.splice(nearestIndex, 1)
-        const secondNearestIndex = distances.indexOf(Math.min(...distances));
-        const [point2, normal2] = collideData[secondNearestIndex];
-        point = util.vector.divideBy(util.vector.add(point, point2), 2);
-        normal = util.vector.divideBy(util.vector.add(normal, normal2), 2);
-      }
-
-      this.collisionPoint = point;
-      this.collisionNormal = normal;
+      this.collisionPoint = util.vector.divideBy(util.vector.addAll(...nearestTwo.map(c => c[0])), nearestTwo.length);
+      this.collisionNormal = util.vector.divideBy(util.vector.addAll(...nearestTwo.map(c => c[1])), nearestTwo.length);
 
       const correctedPos = util.vector.subtract(this.collisionPoint, util.vector.multiplyBy(this.collisionNormal, this.radius));
+      // this.queue.push((ctx) => util.canvas.renderCircle(ctx, [...correctedPos], 3, 'green'));
       // this.pos[0] = this.isFalling ? correctedPos[0] : this.pos[0]; // TODO prevents sliding but still not 100% correct
       this.pos[0] = correctedPos[0];
       this.pos[1] = correctedPos[1];
 
       if (this.isFalling && Math.abs(util.vector.length(this.velocity) * this.elasticity) > 1.5) {
+        const impactDot = util.vector.dot(util.vector.normalize(this.velocity), this.collisionNormal);
         const strength = util.vector.length(this.velocity);
-        this.velocity = util.vector.multiplyBy(util.vector.reflection(this.velocity, normal), this.elasticity);
+        this.velocity = util.vector.multiplyBy(util.vector.reflection(this.velocity, this.collisionNormal), this.elasticity);
         console.log('bounce', this.velocity, strength);
 
-        if (strength >= 10) {
+        // sculpt terrain depending on speed and "directness" of impact (as indicated by dot)
+        if (strength >= 10 && impactDot >= 0.2) {
           world.sculpComponent.radiusXY = 3;
-          world.sculpComponent.strength = -strength * 0.15;
-          world.sculpComponent.sculpt(point);
+          const sculptStrength = -strength * 0.3 * impactDot
+          console.log('----sculpt strength', sculptStrength)
+          world.sculpComponent.strength = sculptStrength;
+          world.sculpComponent.sculpt(this.collisionPoint);
         }
       } else {
         // TODO maybe only reduce velocity based on collision direction
@@ -202,17 +203,48 @@ class Entity {
       this.collisionPoint = null;
     }
 
-    this.isFalling = !collideData.length;
-    if (!this.isFalling) {
+    // TODO numFramesFalling solution not final, only to get a feeling for it
+    this.numFramesFalling = collideData.length ? 0 : this.numFramesFalling + 1;
+    if (collideData.length) {
+      this.numFramesFalling = 0;
+      this.isFalling = false;
       this.velocity[0] = this.velocity[0] * this.groundFriction;
+      this.velocity[1] = this.velocity[1] * this.groundFriction;
+    } else if (this.numFramesFalling > 5) {
+      this.numFramesFalling++;
+      this.isFalling = true;
     }
   }
 
   addInput(delta) {
+    let inputRotation = 0;
+    if (this.collisionNormal) {
+      const rel = util.vector.negate(this.collisionNormal);
+      const up = [0, -1]; // TODO derive from gravity direction. Currently hardcoded to it
+      const dot = util.vector.dot(up, rel);
+      const cross = up[0] * rel[1] - up[1] * rel[0];
+      let angle = Math.acos(dot) * (180 / Math.PI);
+      inputRotation = (cross > 0 ? 360 - angle : angle);
+    }
+
+    // Rotate the input vector according to the current collision
+    let finalInput = this.input;
+    if (this.collisionPoint) {
+      finalInput = util.vector.rotate(this.input, inputRotation);
+      const collideAbove = this.pos[1] > this.collisionPoint[1];
+      finalInput = collideAbove ? util.vector.negate(finalInput) : finalInput;
+      finalInput = util.vector.interp(this.lastActualInput, finalInput, 0.125); // TODO make fps independent
+    } else if (this.lastActualInput) {
+      finalInput = util.vector.interp(this.lastActualInput, this.input, 0.125)
+    }
+
+    // const inputEnd = util.vector.add(this.pos, util.vector.multiplyBy(finalInput, 200));
+    // this.queue.push((ctx) => util.canvas.renderLine(ctx, this.pos, inputEnd, 'red', 3));
+
     const brake = this.isFalling ? this.airControl : 1;
-    this.velocity[0] += this.input[0] * this.inputVelocityLength * brake * delta;
-    this.velocity[1] += this.input[1] * this.inputVelocityLength * brake * delta;
+    this.velocity[0] += finalInput[0] * this.inputVelocityLength * brake * delta;
+    this.velocity[1] += finalInput[1] * this.inputVelocityLength * brake * delta;
+
+    this.lastActualInput = finalInput;
   }
 }
-
-// TODO rotate body based on surface normal and project input movement to surface normal (imagine a car driving along a plane, it does adjust as well)

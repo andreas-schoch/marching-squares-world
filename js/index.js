@@ -1,4 +1,4 @@
-const world = new World(15, 70, 30);
+const world = new World(15, 96, 42);
 
 noise.seed(Math.random());
 world._generateVertices((x, y) => {
@@ -11,16 +11,8 @@ world._generateVertices((x, y) => {
   return Math.round(n + (world.tileDensityMax * bias));
 });
 
-const btnSave = document.getElementById('btn-save');
-const btnLoad = document.getElementById('btn-load');
-const btnRender = document.getElementById('btn-render');
-const btnDebug = document.getElementById('btn-debug');
-
-btnSave.onclick = (evt) => {
-  localStorage.setItem('vertMap', JSON.stringify(world.vertMap));
-}
-
-btnLoad.onclick = (evt) => {
+document.getElementById('btn-save').onclick = (evt) => localStorage.setItem('vertMap', JSON.stringify(world.vertMap));
+document.getElementById('btn-load').onclick = (evt) => {
   const storedVertMap = JSON.parse(localStorage.getItem('vertMap'));
   if (storedVertMap) {
     world.vertMap = storedVertMap;
@@ -28,16 +20,16 @@ btnLoad.onclick = (evt) => {
   }
 }
 
-btnRender.onclick = evt => {
+document.getElementById('btn-render').onclick = evt => {
   world.renderQueue.push({x: 0, y: 0, numTilesX: world.numTilesX, numTilesY: world.numTilesY, materialIndex: null});
 }
 
-btnDebug.onclick = evt => {
+document.getElementById('btn-debug').onclick = evt => {
   world.debug = !world.debug;
   world.renderQueue.push({x: 0, y: 0, numTilesX: world.numTilesX, numTilesY: world.numTilesY, materialIndex: null});
 }
 
-const entity = new Entity(world.ctx, [0, 0], [((world.numTilesX / 2) * world.tileSize) - 20, 150], [0, 0]);
+const entity = new Entity(world.ctx, [0, 0], [((world.numTilesX / 2) * world.tileSize) - 20, 40], [0, 0]);
 world.entities.push(entity);
 
 // TODO figure out why adding a second entity influences air control of first one
@@ -82,10 +74,6 @@ world.input.register('q', () => entity.mode = entity.mode === 'dig' ? 'normal' :
 //   () => {
 //
 //   });
-
-// world.input.register('dig',
-//   () => { console.log('dig pressed')},
-//   () => this.sculpComponent._lastSculpt = null);
 
 requestAnimationFrame(world.main);
 

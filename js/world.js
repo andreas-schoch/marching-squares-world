@@ -5,6 +5,7 @@ class World {
     // To render terrain
     const canvasContainer = document.querySelector('.canvas-container');
     this.canvas = document.createElement('canvas');
+    this.canvas.classList.add('canvas-terrain');
     this.ctx = this.canvas.getContext('2d',);
     this.canvas.width = tileSize * numTilesX;
     this.canvas.height = tileSize * numTilesY;
@@ -46,14 +47,11 @@ class World {
     this.materialColor = [this.gradientground, 'blue', 'green', 'red'];
     this.vertices = [];
     this.verticesWater = [];
-
     this.vertMap = [this.vertices, this.verticesWater];
 
     this.entities = [];
 
-    this.renderQueue = [
-      {x: 0, y: 0, numTilesX: this.numTilesX, numTilesY: this.numTilesY, materialIndex: null},
-    ];
+    this.renderQueue = [{x: 0, y: 0, numTilesX: this.numTilesX, numTilesY: this.numTilesY, materialIndex: null}];
     this.TileManager = new TileLookupManager(tileSize);
     this.input = new InputComponent(); // TODO move this to a player class;
     this.input.initListeners(document);
@@ -115,8 +113,8 @@ class World {
     if (world.input._mappings['leftMouseButton'].active) {
       const offset = this.canvas.getBoundingClientRect(); // offset of canvas to topleft
       const sculptPos = [this.input.lastMouseMoveEvent.clientX - offset.x, this.input.lastMouseMoveEvent.clientY - offset.y];
-      world.sculpComponent.strength = (world.input._mappings.shift.active ? -180 : 180) * delta;
-      world.sculpComponent.radiusXY = 5
+      world.sculpComponent.strength = (world.input._mappings.shift.active ? -100 : 100) * delta;
+      world.sculpComponent.radiusXY = 12
       world.sculpComponent.sculpt(sculptPos);
     }
 

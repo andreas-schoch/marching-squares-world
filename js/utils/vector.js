@@ -13,13 +13,15 @@ class VectorUtils {
 
   divideBy = (v1, divisor) => [v1[0] / divisor, v1[1] / divisor];
 
-  addAll = (...vectors) => vectors.reduce((acc, v) => [acc[0] + v[0], acc[1] + v[1]], [1, 1]);
+  addAll = (...vectors) => vectors.reduce((acc, v) => this.add(acc, v), [0, 0]);
 
   multiplyAll = (...vectors) => vectors.reduce((acc, v) => [acc[0] * v[0], acc[1] * v[1]], [1, 1]);
 
   relativeVector = (v1, v2) => [v1[0] - v2[0], v1[1] - v2[1]];
 
   negate = (vector) => [-vector[0], -vector[1]];
+
+  interp = (v1, v2, frac) => [v1[0] + (v2[0] - v1[0]) * frac, v1[1] + (v2[1] - v1[1]) * frac];
 
   floor = (v) => [Math.floor(v[0]), Math.floor(v[1])];
   round = (v) => [Math.round(v[0]), Math.round(v[1])];
