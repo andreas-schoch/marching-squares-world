@@ -61,10 +61,13 @@ class World {
   _generateVertices(noiseFunction) {
     for (let y = 0; y <= this.numTilesY; y++) {
       const row = [];
+      const rowWater = [];
       for (let x = 0; x <= this.numTilesX; x++) {
         row.push(noiseFunction.call(this, x, y));
+        rowWater.push(0);
       }
       this.vertices.push(row);
+      this.verticesWater(rowWater);
     }
   }
 
@@ -109,51 +112,59 @@ class World {
     }
   }
 
+  // rain() {
+  //   if (Math.random() * 100 < 85) return
+  //   // const drops = 1;
+  //
+  //   // for (let i = 0; i <= drops; i++) {
+  //   const spawnX = Math.floor(Math.random() * this.canvas.width);
+  //   const spawnPos = [spawnX, 0];
+  //   world.sculpComponent.strength = this.tileDensityThreshold * 1.3;
+  //   world.sculpComponent.radiusXY = 1
+  //   world.sculpComponent.sculpt(spawnPos);
+  //   // }
+  // }
+
   flow(delta) {
     for (let y = this.numTilesY - 1; y >= 0; y--) {
       const row = this.vertices[y];
       const rowBelow = this.vertices[y + 1];
-      for (let x = 1; x < this.numTilesX; x++) {
-        try {
-          // this.entities[0].queue.push((ctx) => {
-          //   util.canvas.renderText(ctx, this.vertices[y][x].toFixed(0), util.vector.multiplyBy([x, y], this.tileSize), 'center', 10);
-          // });
+      for (let x1 = 0; x1 <= this.numTilesX; x1++) {
+        let x = y % 2 === 0 ? this.numTilesX - x1 : x1; // Alternate horizontal scan direction
+        // Try to flow down // TODO also try left and right if some density is left
+        let remainingDensity = row[x];
+        if (remainingDensity <= 0) continue;
+        const availableDensityBelow = rowBelow[x] !== undefined ? this.tileDensityMax - rowBelow[x] : 0;
+        if (availableDensityBelow) {
+          const flow = Math.min(remainingDensity, availableDensityBelow);
+          rowBelow[x] += flow;
+          row[x] -= flow;
+        }
 
-          // Try to flow down
-          let remainingDensity = row[x];
-          if (remainingDensity <= 0) continue;
-          const availableDensityBelow = this.tileDensityMax - rowBelow[x];
-          if (availableDensityBelow) {
-            const flow = Math.min(remainingDensity, availableDensityBelow);
-            rowBelow[x] += flow;
-            row[x] -= flow;
-          }
+        // If it cannot flow down, try flowing left and right in equal amounts
+        remainingDensity = row[x];
+        if (remainingDensity <= 0) continue;
+        const availableDensityLeft = this.tileDensityMax - row[x - 1];
+        const availableDensityRight = this.tileDensityMax - row[x + 1];
+        const canFlowLeft = availableDensityLeft && row[x - 1] < remainingDensity;
+        const canFlowRight = availableDensityRight && row[x + 1] < remainingDensity;
 
-          // If it cannot flow down, try flowing left and right in equal amounts
-          remainingDensity = row[x];
-          if (remainingDensity <= 0) continue;
-          const availableDensityLeft = this.tileDensityMax - row[x - 1];
-          const availableDensityRight = this.tileDensityMax - row[x + 1];
-          const canFlowLeft = availableDensityLeft && row[x - 1] < remainingDensity;
-          const canFlowRight = availableDensityRight && row[x + 1] < remainingDensity;
-
-          if (canFlowLeft && canFlowRight) {
-            const average = (row[x - 1] + row[x] + row[x + 1]) / 3;
-            row[x - 1] = average;
-            row[x + 1] = average;
-            row[x] = average;
-          } else if (canFlowLeft) {
-            const average = (row[x - 1] + row[x]) / 2;
-            row[x - 1] = average;
-            row[x] = average;
-          } else if (canFlowRight) {
-            const average = (row[x] + row[x + 1]) / 2;
-            row[x + 1] = average;
-            row[x] = average;
-          }
-        } catch (err) {
-          console.error('coords XY', x, y, err);
-
+        if (canFlowLeft && canFlowRight) {
+          const average = (remainingDensity + row[x - 1] + row[x + 1]) / 3;
+          // TODO try moving -3 and +3 tiles left and right instead of just -1 and +1
+          //  The water spreads too slowly causing pyramids
+          // row.splice(x-1, 3, average, average, average)
+          row[x - 1] = average;
+          row[x + 1] = average;
+          row[x] = average;
+        } else if (canFlowLeft) {
+          const average = (remainingDensity + row[x - 1]) / 2;
+          row[x - 1] = average;
+          row[x] = average;
+        } else if (canFlowRight) {
+          const average = (remainingDensity + row[x + 1]) / 2;
+          row[x + 1] = average;
+          row[x] = average;
         }
       }
     }
