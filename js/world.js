@@ -51,7 +51,7 @@ class World {
 
     this.entities = [];
 
-    this.renderQueue = [{x: 0, y: 0, numTilesX: this.numTilesX, numTilesY: this.numTilesY, materialIndex: null}];
+    this.renderQueue = [{x: 0, y: 0, numTilesX: this.numTilesX, numTilesY: this.numTilesY, materialIndex: 0}];
     this.TileManager = new TileLookupManager(tileSize);
     this.input = new InputComponent(); // TODO move this to a player class;
     this.input.initListeners(document);
@@ -63,11 +63,12 @@ class World {
       const row = [];
       const rowWater = [];
       for (let x = 0; x <= this.numTilesX; x++) {
-        row.push(noiseFunction.call(this, x, y));
+        const noise = noiseFunction.call(this, x, y);
+        row.push(noise);
         rowWater.push(0);
       }
       this.vertices.push(row);
-      this.verticesWater(rowWater);
+      this.verticesWater.push(rowWater);
     }
   }
 
@@ -127,49 +128,53 @@ class World {
 
   flow(delta) {
     for (let y = this.numTilesY - 1; y >= 0; y--) {
-      const row = this.vertices[y];
-      const rowBelow = this.vertices[y + 1];
+      const rowWater = this.verticesWater[y];
+      const rowWaterBelow = this.verticesWater[y + 1];
+      const rowTerrain = this.vertices[y];
+      const rowTerrainBelow = this.vertices[y + 1];
+
       for (let x1 = 0; x1 <= this.numTilesX; x1++) {
         let x = y % 2 === 0 ? this.numTilesX - x1 : x1; // Alternate horizontal scan direction
+
         // Try to flow down // TODO also try left and right if some density is left
-        let remainingDensity = row[x];
+        let remainingDensity = rowWater[x];
         if (remainingDensity <= 0) continue;
-        const availableDensityBelow = rowBelow[x] !== undefined ? this.tileDensityMax - rowBelow[x] : 0;
-        if (availableDensityBelow) {
+        const availableDensityBelow = rowWaterBelow[x] !== undefined ? this.tileDensityMax - rowWaterBelow[x] : 0;
+        if (availableDensityBelow && rowTerrainBelow[x] <= this.tileDensityThreshold) {
           const flow = Math.min(remainingDensity, availableDensityBelow);
-          rowBelow[x] += flow;
-          row[x] -= flow;
+          rowWaterBelow[x] += flow;
+          rowWater[x] -= flow;
         }
 
         // If it cannot flow down, try flowing left and right in equal amounts
-        remainingDensity = row[x];
+        remainingDensity = rowWater[x];
         if (remainingDensity <= 0) continue;
-        const availableDensityLeft = this.tileDensityMax - row[x - 1];
-        const availableDensityRight = this.tileDensityMax - row[x + 1];
-        const canFlowLeft = availableDensityLeft && row[x - 1] < remainingDensity;
-        const canFlowRight = availableDensityRight && row[x + 1] < remainingDensity;
+        const availableDensityLeft = this.tileDensityMax - rowWater[x - 1];
+        const availableDensityRight = this.tileDensityMax - rowWater[x + 1];
+        const canFlowLeft = availableDensityLeft && rowWater[x - 1] < remainingDensity;
+        const canFlowRight = availableDensityRight && rowWater[x + 1] < remainingDensity;
 
-        if (canFlowLeft && canFlowRight) {
-          const average = (remainingDensity + row[x - 1] + row[x + 1]) / 3;
+        if (canFlowLeft && rowTerrain[x - 1] <= this.tileDensityThreshold && canFlowRight && rowTerrain[x + 1] <= this.tileDensityThreshold) {
+          const average = (remainingDensity + rowWater[x - 1] + rowWater[x + 1]) / 3;
           // TODO try moving -3 and +3 tiles left and right instead of just -1 and +1
           //  The water spreads too slowly causing pyramids
           // row.splice(x-1, 3, average, average, average)
-          row[x - 1] = average;
-          row[x + 1] = average;
-          row[x] = average;
-        } else if (canFlowLeft) {
-          const average = (remainingDensity + row[x - 1]) / 2;
-          row[x - 1] = average;
-          row[x] = average;
-        } else if (canFlowRight) {
-          const average = (remainingDensity + row[x + 1]) / 2;
-          row[x + 1] = average;
-          row[x] = average;
+          rowWater[x - 1] = average;
+          rowWater[x + 1] = average;
+          rowWater[x] = average;
+        } else if (canFlowLeft && rowTerrain[x - 1] <= this.tileDensityThreshold) {
+          const average = (remainingDensity + rowWater[x - 1]) / 2;
+          rowWater[x - 1] = average;
+          rowWater[x] = average;
+        } else if (canFlowRight && rowTerrain[x + 1] <= this.tileDensityThreshold) {
+          const average = (remainingDensity + rowWater[x + 1]) / 2;
+          rowWater[x + 1] = average;
+          rowWater[x] = average;
         }
       }
     }
 
-    this.renderQueue.push({x: 0, y: 0, numTilesX: this.numTilesX, numTilesY: this.numTilesY, materialIndex: null});
+    this.renderQueue.push({x: 0, y: 0, numTilesX: this.numTilesX, numTilesY: this.numTilesY, materialIndex: 1});
   }
 
   update(delta) {
@@ -179,7 +184,7 @@ class World {
       const offset = this.canvas.getBoundingClientRect(); // offset of canvas to topleft
       const sculptPos = [this.input.lastMouseMoveEvent.clientX - offset.x, this.input.lastMouseMoveEvent.clientY - offset.y];
       world.sculpComponent.strength = (world.input._mappings.shift.active ? -this.tileDensityThreshold : this.tileDensityThreshold) * 1.25;
-      world.sculpComponent.radiusXY = 1
+      world.sculpComponent.radiusXY = 2
       world.sculpComponent.sculpt(sculptPos);
     }
 
@@ -206,6 +211,7 @@ class World {
         for (let y = bounds.y; y < (bounds.y + bounds.numTilesY); y++) {
           for (let x = bounds.x; x < bounds.x + bounds.numTilesX; x++) {
             if (x < 0 || y < 0 || x > this.numTilesX || y > this.numTilesY) continue;
+            this.renderTileAt(x, y, null, 1);
             this.renderTileAt(x, y, null, 0);
           }
         }
@@ -219,6 +225,7 @@ class World {
     if (this.debug) {
       util.debug.renderDebugGrid(this);
       util.debug.renderDebugEdgeDensity(this, 0);
+      util.debug.renderDebugEdgeDensity(this, 1);
     }
 
     // TODO there should be a separate canvas for rendering dynamic objects like entities

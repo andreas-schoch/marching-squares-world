@@ -29,14 +29,14 @@ class DebugUtils {
   }
 
   renderDebugEdgeDensity(world, materialIndex) {
-    world.ctx.fillStyle = 'salmon';
+    const color = materialIndex ? 'red' : 'black';
     for (let y = 0; y <= world.numTilesY; y++) {
       for (let x = 0; x <= world.numTilesX; x++) {
         const offset = 0;
-        const position = [x * world.tileSize + offset, y * world.tileSize + offset];
+        const position = [x * world.tileSize + offset + (materialIndex ? -2 : 2), y * world.tileSize + offset];
         const density = world.vertMap[materialIndex][y][x];
         // const materialIndex = world.verticesMaterial[y][x];
-        util.canvas.renderText(world.ctx, density.toFixed(0), position, 'right', 8);
+        util.canvas.renderText(world.ctx, density.toFixed(0), position, materialIndex ? 'right' : 'left', 9, color);
       }
     }
   }

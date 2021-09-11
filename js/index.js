@@ -16,17 +16,17 @@ document.getElementById('btn-load').onclick = (evt) => {
   const storedVertMap = JSON.parse(localStorage.getItem('vertMap'));
   if (storedVertMap) {
     world.vertMap = storedVertMap;
-    world.renderQueue.push({x: 0, y: 0, numTilesX: world.numTilesX, numTilesY: world.numTilesY, materialIndex: null});
+    world.renderQueue.push({x: 0, y: 0, numTilesX: world.numTilesX, numTilesY: world.numTilesY, materialIndex: 0});
   }
 }
 
 document.getElementById('btn-render').onclick = evt => {
-  world.renderQueue.push({x: 0, y: 0, numTilesX: world.numTilesX, numTilesY: world.numTilesY, materialIndex: null});
+  world.renderQueue.push({x: 0, y: 0, numTilesX: world.numTilesX, numTilesY: world.numTilesY, materialIndex: 0});
 }
 
 document.getElementById('btn-debug').onclick = evt => {
   world.debug = !world.debug;
-  world.renderQueue.push({x: 0, y: 0, numTilesX: world.numTilesX, numTilesY: world.numTilesY, materialIndex: null});
+  world.renderQueue.push({x: 0, y: 0, numTilesX: world.numTilesX, numTilesY: world.numTilesY, materialIndex: 0});
 }
 
 const entity = new Entity(world.ctx, [0, 0], [((world.numTilesX / 2) * world.tileSize) - 20, 40], [0, 0]);
@@ -60,9 +60,15 @@ world.input.register('q', () => entity.mode = entity.mode === 'dig' ? 'normal' :
 //   () => entity.input = util.vector.subtract(entity.input, world.input._mappings['moveUp'].direction)
 // )
 //
+
+world.input.register('arrowUp',
+  () => world.sculpComponent.activeMaterialIndex = 1
+);
+
 world.input.register('arrowDown',
-  () => world.flow()
-)
+  () => world.sculpComponent.activeMaterialIndex = 0
+);
+
 
 // TODO create projectile class based on Entity which explodes when colliding
 // world.input.register('leftMouseButton',
