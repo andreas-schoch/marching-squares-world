@@ -109,12 +109,66 @@ class World {
     }
   }
 
+  flow(delta) {
+    for (let y = this.numTilesY - 1; y >= 0; y--) {
+      const row = this.vertices[y];
+      const rowBelow = this.vertices[y + 1];
+      for (let x = 1; x < this.numTilesX; x++) {
+        try {
+          // this.entities[0].queue.push((ctx) => {
+          //   util.canvas.renderText(ctx, this.vertices[y][x].toFixed(0), util.vector.multiplyBy([x, y], this.tileSize), 'center', 10);
+          // });
+
+          // Try to flow down
+          let remainingDensity = row[x];
+          if (remainingDensity <= 0) continue;
+          const availableDensityBelow = this.tileDensityMax - rowBelow[x];
+          if (availableDensityBelow) {
+            const flow = Math.min(remainingDensity, availableDensityBelow);
+            rowBelow[x] += flow;
+            row[x] -= flow;
+          }
+
+          // If it cannot flow down, try flowing left and right in equal amounts
+          remainingDensity = row[x];
+          if (remainingDensity <= 0) continue;
+          const availableDensityLeft = this.tileDensityMax - row[x - 1];
+          const availableDensityRight = this.tileDensityMax - row[x + 1];
+          const canFlowLeft = availableDensityLeft && row[x - 1] < remainingDensity;
+          const canFlowRight = availableDensityRight && row[x + 1] < remainingDensity;
+
+          if (canFlowLeft && canFlowRight) {
+            const average = (row[x - 1] + row[x] + row[x + 1]) / 3;
+            row[x - 1] = average;
+            row[x + 1] = average;
+            row[x] = average;
+          } else if (canFlowLeft) {
+            const average = (row[x - 1] + row[x]) / 2;
+            row[x - 1] = average;
+            row[x] = average;
+          } else if (canFlowRight) {
+            const average = (row[x] + row[x + 1]) / 2;
+            row[x + 1] = average;
+            row[x] = average;
+          }
+        } catch (err) {
+          console.error('coords XY', x, y, err);
+
+        }
+      }
+    }
+
+    this.renderQueue.push({x: 0, y: 0, numTilesX: this.numTilesX, numTilesY: this.numTilesY, materialIndex: null});
+  }
+
   update(delta) {
+    this.flow(delta);
+
     if (world.input._mappings['leftMouseButton'].active) {
       const offset = this.canvas.getBoundingClientRect(); // offset of canvas to topleft
       const sculptPos = [this.input.lastMouseMoveEvent.clientX - offset.x, this.input.lastMouseMoveEvent.clientY - offset.y];
-      world.sculpComponent.strength = (world.input._mappings.shift.active ? -100 : 100) * delta;
-      world.sculpComponent.radiusXY = 12
+      world.sculpComponent.strength = (world.input._mappings.shift.active ? -this.tileDensityThreshold : this.tileDensityThreshold) * 1.25;
+      world.sculpComponent.radiusXY = 1
       world.sculpComponent.sculpt(sculptPos);
     }
 

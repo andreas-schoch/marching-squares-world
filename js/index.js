@@ -8,7 +8,7 @@ world._generateVertices((x, y) => {
   const n = (n1 + n2 + n3) / 3;
 
   const bias = ((y) / world.numTilesY);
-  return Math.round(n + (world.tileDensityMax * bias));
+  return Math.max(Math.round(n + (world.tileDensityMax * bias)), 0);
 });
 
 document.getElementById('btn-save').onclick = (evt) => localStorage.setItem('vertMap', JSON.stringify(world.vertMap));
@@ -60,10 +60,9 @@ world.input.register('q', () => entity.mode = entity.mode === 'dig' ? 'normal' :
 //   () => entity.input = util.vector.subtract(entity.input, world.input._mappings['moveUp'].direction)
 // )
 //
-// world.input.register('moveDown',
-//   () => entity.input = util.vector.add(entity.input, world.input._mappings['moveDown'].direction),
-//   () => entity.input = util.vector.subtract(entity.input, world.input._mappings['moveDown'].direction)
-// )
+world.input.register('arrowDown',
+  () => world.flow()
+)
 
 // TODO create projectile class based on Entity which explodes when colliding
 // world.input.register('leftMouseButton',
