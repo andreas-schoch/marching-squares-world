@@ -1,4 +1,4 @@
-const world = new World(15, 96, 42);
+const world = new World(16, 64, 28);
 
 noise.seed(Math.random());
 world._generateVertices((x, y) => {
@@ -30,7 +30,7 @@ document.getElementById('btn-debug').onclick = evt => {
 }
 
 const entity = new Entity(world.ctx, [0, 0], [((world.numTilesX / 2) * world.tileSize) - 20, 40], [0, 0]);
-// world.entities.push(entity);
+world.entities.push(entity);
 
 // TODO figure out why adding a second entity influences air control of first one
 // const entity2 = new Entity(world.ctx, [0, 0], [1000, 150], [-12, -7]);

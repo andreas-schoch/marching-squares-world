@@ -6,8 +6,9 @@ class SculptComponent {
     this.activeMaterialIndex = 0;
   }
 
-  sculpt = (posRaw) => {
+  sculpt = (posRaw, materialOverride) => {
     const pos = util.vector.round(util.vector.divideBy(posRaw, this.worldRef.tileSize));
+    const material = materialOverride || this.activeMaterialIndex;
     for (let offsetY = -this.radiusXY; offsetY <= this.radiusXY; offsetY++) {
       for (let offsetX = -this.radiusXY; offsetX <= this.radiusXY; offsetX++) {
         const currentX = pos[0] + offsetX;
@@ -19,9 +20,24 @@ class SculptComponent {
 
         const falloff = Math.max(Math.min((dist / -(this.radiusXY)) + 1, 1), 0);
         const densityChange = this.strength * falloff;
-        const currentDensity = this.worldRef.vertMap[this.activeMaterialIndex][currentY][currentX];
+        const currentDensity = this.worldRef.vertMap[material][currentY][currentX];
         const newDensityRaw = Math.min(Math.max(0, currentDensity + densityChange), this.worldRef.tileDensityMax);
-        this.worldRef.vertMap[this.activeMaterialIndex][currentY][currentX] = newDensityRaw;
+        if (Math.abs(currentDensity - newDensityRaw) <= 0.05) continue;
+
+        // TODO cleanup code below. Behaviour is hardcoded based on material. Can cross-material interactions
+        //  Be defined somewhere else? Maybe have a material class where the logic is defined?
+        if (material === 1) {
+          const currentDensityTerrain = this.worldRef.vertMap[0][currentY][currentX];
+          if (currentDensityTerrain >= this.worldRef.tileDensityThreshold) continue;
+        }
+
+        this.worldRef.vertMap[material][currentY][currentX] = newDensityRaw;
+
+        if (material === 0 && newDensityRaw < this.worldRef.tileDensityThreshold) {
+          this.worldRef.vertMap[1][currentY][currentX] = 0;
+        } else if (material === 0 && newDensityRaw >= this.worldRef.tileDensityThreshold) {
+          this.worldRef.vertMap[1][currentY][currentX] = this.worldRef.tileDensityMax - newDensityRaw;
+        }
       }
     }
 
@@ -29,6 +45,6 @@ class SculptComponent {
     const startY = Math.min(Math.max(pos[1] - this.radiusXY, 0), this.worldRef.numTilesY);
     const numTilesX = Math.min(this.radiusXY * 2, this.worldRef.numTilesX);
     const numTilesY = Math.min(this.radiusXY * 2, this.worldRef.numTilesY);
-    this.worldRef.renderQueue.push({x: startX - 1, y: startY - 1, numTilesX: numTilesX + 2, numTilesY: numTilesY + 2, materialIndex: this.activeMaterialIndex});
+    this.worldRef.renderQueue.push({x: startX - 1, y: startY - 1, numTilesX: numTilesX + 2, numTilesY: numTilesY + 2, materialIndex: material});
   };
 }
