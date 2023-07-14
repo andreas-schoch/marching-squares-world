@@ -66,6 +66,7 @@ export class World {
     this.canvasBackground.classList.add('canvas-background');
     this.canvasBackground.width = tileSize * numTilesX;
     this.canvasBackground.height = tileSize * numTilesY;
+    this.canvasBackground.style.zIndex = '0';
     this.ctxBackground = this.canvasBackground.getContext('2d') as CanvasRenderingContext2D;
     canvasContainer.appendChild(this.canvasBackground);
 
@@ -74,6 +75,7 @@ export class World {
     this.canvasWater.classList.add('canvas-Water');
     this.canvasWater.width = tileSize * numTilesX;
     this.canvasWater.height = tileSize * numTilesY;
+    this.canvasWater.style.zIndex = '2';
     this.ctxWater = this.canvasWater.getContext('2d') as CanvasRenderingContext2D; 
     canvasContainer.appendChild(this.canvasWater);
 
@@ -83,6 +85,7 @@ export class World {
     this.ctx = this.canvas.getContext('2d',) as CanvasRenderingContext2D;
     this.canvas.width = tileSize * numTilesX;
     this.canvas.height = tileSize * numTilesY;
+    this.canvas.style.zIndex = '3';
     canvasContainer.appendChild(this.canvas);
 
     // Performance optimization for terrain canvas by saving
@@ -97,6 +100,7 @@ export class World {
     this.canvasEntity = document.createElement('canvas');
     this.canvasEntity.width = tileSize * numTilesX;
     this.canvasEntity.height = tileSize * numTilesY;
+    this.canvasEntity.style.zIndex = '1';
     this.ctxEntity = this.canvasEntity.getContext('2d') as CanvasRenderingContext2D;
     canvasContainer.appendChild(this.canvasEntity);
 
@@ -104,6 +108,8 @@ export class World {
     this.gradientSky = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
     this.gradientSky.addColorStop(0, "lightblue");
     this.gradientSky.addColorStop(1, "aliceblue");
+    this.ctxBackground.fillStyle = this.gradientSky;
+    this.ctxBackground.fillRect(0, 0, this.canvasBackground.width, this.canvasBackground.height);
 
     // Create ground gradient
     this.gradientground = this.ctx.createLinearGradient(0, 0, 0, tileSize);
@@ -118,7 +124,7 @@ export class World {
     this.tileDensityMax = 128;
     this.tileDensityThreshold = (this.tileDensityMax / 2);
 
-    this.materialColor = [this.gradientground, 'DodgerBlue', 'green', 'red'];
+    this.materialColor = [this.gradientground, 'rgb(30, 144, 255, 0.5)', 'green', 'red'];
     this.vertices = [];
     this.verticesWater = [];
     this.vertMap = [this.vertices, this.verticesWater];
@@ -193,7 +199,7 @@ export class World {
 
   public rain(): void {
     // return;
-    if (Math.random() * 100 < 92.5) return
+    if (Math.random() * 100 < 85) return
     const spawnX = Math.floor(Math.random() * this.canvas.width);
     const spawnPos: Vector2 = [spawnX, 0];
     this.sculpComponent.strength = this.tileDensityThreshold * 1.3;
@@ -207,10 +213,6 @@ export class World {
 
   public flow(): void {
     // console.time('flow');
-    // const rowDidFlow: boolean[] = new Array(this.numTilesX).fill(false);
-    // const sectorDidFlow: Record<string, Bounds> = {};
-    
-
     for (let y = this.numTilesY - 1; y >= 0; y--) {
       const rowWater = this.verticesWater[y];
       const rowWaterBelow = this.verticesWater[y + 1];
@@ -257,33 +259,23 @@ export class World {
           rowWater[x] = average;
           this.spacialHash[this.getSpacialHashKey(x + 1, y)].water = true;
           this.spacialHash[this.getSpacialHashKey(x, y)].water = true;
-          // rowDidFlow[x + 1] = true;
-          // rowDidFlow[x] = true;
-        }
-        
-        
-        // rowDidFlow.forEach((didFlow, x) => {
-          //   didFlow && this.renderQueue.push({startX: x - 1, startY: y - 1, numTilesX: 3, numTilesY: 3, terrain: false, water: true});
-          // });
-          // rowDidFlow.fill(false);
-          
-        }
-        // rowDidFlow.some(didFlow => didFlow) && this.renderQueue.push({startX: 0, startY: y - 1, numTilesX: this.numTilesX, numTilesY: 3, terrain: false, water: true});
+        }    
+      }
     }
 
     Object.values(this.spacialHash)
     .filter(b => b.water)
     .forEach((b) => {
-      this.renderQueue.push({...b, water: true})
+      this.renderQueue.push({...b, water: true});
       b.water = false;
     });
     
-    // this.renderQueue.push({startX: 0, startY: 0, numTilesX: this.numTilesX, numTilesY: this.numTilesY, terrain: false, water: true});
+    // console.timeEnd('flow');
   }
   
   public update(delta: number): void {
     this.flow();
-    // this.rain();
+    this.rain();
     
     if (this.input._mappings['leftMouseButton'].active) { // TODO create a method on input component instead of exposing private stuff
       const offset = this.canvas.getBoundingClientRect(); // offset of canvas to topleft
@@ -300,8 +292,6 @@ export class World {
 
   public render(): void {
     // console.time('render');  
-    this.ctxBackground.fillStyle = this.gradientSky;
-    this.ctxBackground.fillRect(0, 0, this.canvasBackground.width, this.canvasBackground.height);
 
     // this.ctx.clearRect(0, 0, this.ctxEntity.canvas.width, this.ctxEntity.canvas.height);
     // this.ctxWater.clearRect(0, 0, this.ctxWater.canvas.width, this.ctxWater.canvas.height);

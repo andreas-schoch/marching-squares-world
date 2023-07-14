@@ -187,7 +187,7 @@ export class Entity {
       try {
         const [collides, point, normal] = VectorUtils.lineCircle(from, to, this.pos, this.radius);
         if (collides) collideData.push([point, normal]);
-        // this.queue.push((ctx) => CanvasUtils.renderLine(ctx, from, to, collides ? 'red' : 'green', 3));
+        this.queue.push((ctx) => CanvasUtils.renderLine(ctx, from, to, collides ? 'red' : 'green', 6));
       } catch (e) {
         console.log('err', e)
       }
@@ -201,21 +201,16 @@ export class Entity {
 
       this.collisionPoint = VectorUtils.divideBy(VectorUtils.addAll(...nearestTwo.map(c => c[0])), nearestTwo.length);
       this.collisionNormal = VectorUtils.divideBy(VectorUtils.addAll(...nearestTwo.map(c => c[1])), nearestTwo.length);
-
-      const overlap = this.radius - VectorUtils.distance(this.pos, this.collisionPoint);
-
-
-      const correctedPos = VectorUtils.subtract(this.collisionPoint, VectorUtils.multiplyBy(this.collisionNormal, this.radius));
       this.queue.push((ctx) => CanvasUtils.renderCircle(ctx, [...this.collisionPoint!], 3, 'green'));
-      // this.pos[0] = this.isFalling ? correctedPos[0] : this.pos[0]; // TODO prevents sliding but still not 100% correct
-
+      
+      const correctedPos = VectorUtils.subtract(this.collisionPoint, VectorUtils.multiplyBy(this.collisionNormal, this.radius));
       this.pos[0] = correctedPos[0];
       this.pos[1] = correctedPos[1];
 
       if (this.isFalling && Math.abs(VectorUtils.len(this.velocity) * this.elasticity) > 1.5) {
         const impactDot = VectorUtils.dot(VectorUtils.normalize(this.velocity), this.collisionNormal);
         const strength = VectorUtils.len(this.velocity);
-        this.velocity = [0, 0];// VectorUtils.multiplyBy(VectorUtils.reflection(this.velocity, this.collisionNormal), this.elasticity);
+        this.velocity = VectorUtils.multiplyBy(VectorUtils.reflection(this.velocity, this.collisionNormal), this.elasticity);
         console.log('bounce', this.velocity, strength);
 
 

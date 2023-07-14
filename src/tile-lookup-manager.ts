@@ -144,9 +144,6 @@ export class TileLookupManager {
       }
     }
 
-    if (from && to) console.log('---------is line', from, to);
-
-
     return [new Path2D(svgData), new Path2D(svgDataIso)];
   };
 
