@@ -1,4 +1,27 @@
-class InputComponent {
+import { Vector2 } from "./utils/vector";
+
+type Action = "moveUp" | "moveLeft" | "moveDown" | "moveRight" | "leftMouseButton" | "rightMouseButton" | "jump" | "shift" | "dig" | "arrowUp" | "arrowDown" | "arrowLeft" | "arrowRight" | "q";
+type MouseAction = "leftMouseButton" | "rightMouseButton";
+
+interface IInputMapping {
+  key?: string;
+  active: boolean;
+  type: "action" | "mouse";
+  listeners: {
+    onPress: Array<(evt: KeyboardEvent | MouseEvent) => void>;
+    onRelease: Array<(evt: KeyboardEvent | MouseEvent) => void>;
+  };
+  direction?: Vector2;
+}
+
+export class InputComponent {
+  direction: Vector2;
+  mousePos: Vector2 | null;
+  lastMouseMoveEvent: MouseEvent | null;
+  _mappings: Record<Action | MouseAction, IInputMapping>;
+  private _reverseMappings: Record<string, Action>;
+  private _inputHandlers: { mouse: (evt: any, currentInput: any) => void; action: (evt: any, currentInput: any) => void; };
+
   constructor() {
     this.direction = [0, 0];
     this.mousePos = null;
@@ -47,8 +70,9 @@ class InputComponent {
     }
   }
 
-  register = function (action, onPress, onRelease) {
-    if (this._mappings[action]) {
+  register = (action: Action | MouseAction, onPress?: () => void, onRelease?: () => void) => {
+    const m = this._mappings[action];
+    if (m){
       if (onPress) this._mappings[action].listeners.onPress.push(onPress);
       if (onRelease) this._mappings[action].listeners.onRelease.push(onRelease);
     } else {
@@ -56,20 +80,22 @@ class InputComponent {
     }
   };
 
-  _handleInput = (evt) => {
+  _handleInput = (evt: KeyboardEvent | MouseEvent) => {
     const currentInput = this._getCurrentInput(evt);
     if (currentInput) {
       this._inputHandlers[currentInput.type](evt, currentInput);
     }
   };
 
-  _getCurrentInput = (evt) => {
-    const prefix = evt.button !== undefined ? 'button' : 'key';
-    const inputName = this._reverseMappings[`${prefix} ${evt[prefix]}`];
+  _getCurrentInput = (evt: KeyboardEvent | MouseEvent): IInputMapping => {
+    const isMouseEvent = (evt as MouseEvent).button !== undefined;
+    const prefix = isMouseEvent ? 'button' : 'key';
+    const inputName = this._reverseMappings[`${prefix} ${isMouseEvent ? (evt as MouseEvent).button : (evt as KeyboardEvent).key}`];
     return this._mappings[inputName];
   };
 
-  _handleDirectionInput(evt, currentInput) {
+  _handleDirectionInput(evt: KeyboardEvent, currentInput: IInputMapping) {
+    if (!currentInput.direction) return;
     if (!currentInput.active) {
       this.direction[0] += currentInput.direction[0];
       this.direction[1] += currentInput.direction[1];
@@ -79,7 +105,7 @@ class InputComponent {
     }
   }
 
-  _handleActionInput(evt, currentInput) {
+  _handleActionInput(evt: KeyboardEvent, currentInput: IInputMapping) {
     if (currentInput.direction) {
       this._handleDirectionInput(evt, currentInput);
     }
@@ -92,7 +118,7 @@ class InputComponent {
     currentInput.active = evt.type === 'keydown';
   }
 
-  _handleMouseInput = (evt, currentInput) => {
+  _handleMouseInput = (evt: MouseEvent, currentInput: IInputMapping) => {
     if (!currentInput.active && evt.type === 'mousedown') {
       currentInput.listeners.onPress.forEach(fn => fn(evt));
     } else if (currentInput.active && evt.type === 'mouseup') {
@@ -101,12 +127,12 @@ class InputComponent {
     currentInput.active = evt.type === 'mousedown';
   };
 
-  _handleMouseMove = (evt) => {
+  _handleMouseMove = (evt: MouseEvent) => {
     // TODO rethink this. Not sure if best approach to store event object and use it when necessary. Maybe only store mouse position
     this.lastMouseMoveEvent = evt;
   };
 
-  initListeners = (element) => {
+  initListeners = (element: HTMLElement) => {
     element.addEventListener("keydown", this._handleInput);
     element.addEventListener("keyup", this._handleInput);
     element.addEventListener("mousedown", this._handleInput);
