@@ -47,16 +47,32 @@ export class World {
   spacialHashSize: number;
   spacialHash: Record<string, Bounds> = {};
   
-  constructor(tileSize: number = 20, numTilesX: number = 50, numTilesY: number = 30, spacialHashSize = 3) {
-    if (numTilesX  % spacialHashSize !== 0) throw new Error('numTilesX must be divisible by spacialHashSize');
-    if (numTilesY % spacialHashSize !== 0) throw new Error('numTilesY must be divisible by spacialHashSize');
+
+  constructor(options: {tileSize: number, numTilesX?: number, numTilesY?: number, spacialHashSize?: number, fitWindow?: boolean}) {
+    let {tileSize, numTilesX, numTilesY, spacialHashSize, fitWindow} = options;
+    tileSize = tileSize || 32;
+    numTilesX = fitWindow ? Math.floor(window.innerWidth / tileSize) -2 : numTilesX || 32;
+    numTilesY = fitWindow ? Math.floor(window.innerHeight / tileSize) - 2 : numTilesY || 32;
+    spacialHashSize = spacialHashSize || 3;
+
+    this.numTilesX = numTilesX;
+    this.numTilesY = numTilesY;
+
+    // if (numTilesX  % spacialHashSize !== 0) throw new Error('numTilesX must be divisible by spacialHashSize');
+    // if (numTilesY % spacialHashSize !== 0) throw new Error('numTilesY must be divisible by spacialHashSize');
     
     this.spacialHashSize = spacialHashSize;
     for (let x = 0; x <= numTilesX; x += spacialHashSize) {
       for (let y = 0; y <= numTilesY; y += spacialHashSize) {
+        // const isEndX = x > this.numTilesX ? this.numTilesX : x;
+        // const isEndY = y > this.numTilesY ? this.numTilesY : y;
+
         this.spacialHash[`${x}-${y}`] = {startX: x - 1, startY: y - 1, numTilesX: spacialHashSize + 2, numTilesY: spacialHashSize + 2, water: false, terrain: false};
       }
     }
+
+        // Calculate number of tiles that fit into the viewport
+
     
     this.debug = false;
     const canvasContainer = document.querySelector('.canvas-container');
@@ -64,8 +80,8 @@ export class World {
     // Canvas for background
     this.canvasBackground = document.createElement('canvas');
     this.canvasBackground.classList.add('canvas-background');
-    this.canvasBackground.width = tileSize * numTilesX;
-    this.canvasBackground.height = tileSize * numTilesY;
+    this.canvasBackground.width = tileSize * this.numTilesX;
+    this.canvasBackground.height = tileSize * this.numTilesY;
     this.canvasBackground.style.zIndex = '0';
     this.ctxBackground = this.canvasBackground.getContext('2d') as CanvasRenderingContext2D;
     canvasContainer.appendChild(this.canvasBackground);
@@ -73,8 +89,8 @@ export class World {
     // Canvas for Water
     this.canvasWater = document.createElement('canvas');
     this.canvasWater.classList.add('canvas-Water');
-    this.canvasWater.width = tileSize * numTilesX;
-    this.canvasWater.height = tileSize * numTilesY;
+    this.canvasWater.width = tileSize * this.numTilesX;
+    this.canvasWater.height = tileSize * this.numTilesY;
     this.canvasWater.style.zIndex = '2';
     this.ctxWater = this.canvasWater.getContext('2d') as CanvasRenderingContext2D; 
     canvasContainer.appendChild(this.canvasWater);
@@ -83,8 +99,8 @@ export class World {
     this.canvas = document.createElement('canvas');
     this.canvas.classList.add('canvas-terrain');
     this.ctx = this.canvas.getContext('2d',) as CanvasRenderingContext2D;
-    this.canvas.width = tileSize * numTilesX;
-    this.canvas.height = tileSize * numTilesY;
+    this.canvas.width = tileSize * this.numTilesX;
+    this.canvas.height = tileSize * this.numTilesY;
     this.canvas.style.zIndex = '3';
     canvasContainer.appendChild(this.canvas);
 
@@ -98,8 +114,8 @@ export class World {
 
     // Canvas for moving entities
     this.canvasEntity = document.createElement('canvas');
-    this.canvasEntity.width = tileSize * numTilesX;
-    this.canvasEntity.height = tileSize * numTilesY;
+    this.canvasEntity.width = tileSize * this.numTilesX;
+    this.canvasEntity.height = tileSize * this.numTilesY;
     this.canvasEntity.style.zIndex = '1';
     this.ctxEntity = this.canvasEntity.getContext('2d') as CanvasRenderingContext2D;
     canvasContainer.appendChild(this.canvasEntity);

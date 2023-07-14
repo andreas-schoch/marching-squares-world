@@ -3,7 +3,7 @@ import { VectorUtils } from "./utils/vector";
 import { World } from "./world";
 import { createNoise2D } from 'simplex-noise';
 
-const world = new World(15, 90, 48);
+const world = new World({tileSize: 15, fitWindow: true, spacialHashSize: 3});
 
 const noise = createNoise2D(Math.random);
 world._generateVertices((x, y) => {
